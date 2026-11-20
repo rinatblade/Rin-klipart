@@ -85,6 +85,25 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .colorrow{display:flex;gap:8px;align-items:center}
 input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-radius:10px;padding:0;background:none}
 .pill{display:inline-block;padding:3px 10px;border-radius:12px;background:var(--bg);font-size:12px;color:var(--muted)}
+.editor{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;flex-direction:column}
+.editor.show{display:flex}
+.ed-top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:var(--card);border-bottom:1px solid var(--line)}
+.ed-top .t{flex:1;font-weight:700;font-size:16px}
+.ed-top select{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 6px;font-size:14px;font-weight:600}
+.ed-btn{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 14px;font-size:15px;font-weight:700}
+.ed-save{border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);border-radius:12px;padding:10px 16px;font-size:15px;font-weight:700}
+.ed-stage{flex:1;position:relative;overflow:hidden;touch-action:none;min-height:120px;
+  background-image:linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%),linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%);
+  background-color:var(--chk1);background-size:20px 20px;background-position:0 0,10px 10px}
+.ed-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.ed-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px}
+.ed-zoom button{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-size:20px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.ed-panel{background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(env(safe-area-inset-bottom) + 12px);max-height:44vh;overflow-y:auto}
+.ed-chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px}
+.ed-chips button{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.ed-chips button.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);border-color:transparent}
+.ed-row{display:flex;gap:8px;margin-top:8px}
+.ed-row .btn{padding:11px 6px;font-size:13px;box-shadow:none}
 </style>
 </head>
 <body>
@@ -168,6 +187,7 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
     </div>
 
     <button class="btn" id="btnMake" disabled style="font-size:17px;padding:16px">Создать клипарт</button>
+    <button class="btn sec" id="btnEdit" disabled style="margin-top:10px">Ластик и композиция из клипартов…</button>
   </section>
 
   <!-- ВСЕ КЛИПАРТЫ -->
@@ -211,6 +231,8 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
       <button class="btn sec" id="mDel">Удалить</button>
     </div>
     <div style="height:10px"></div>
+    <button class="btn sec" id="mEdit">Ластик / добавить другие клипарты</button>
+    <div style="height:10px"></div>
     <button class="btn sec" id="mClose">Закрыть</button>
   </div>
 </div>
@@ -222,6 +244,56 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
     <div class="stage" id="dStage"></div>
     <div class="hint" id="dInfo" style="margin:0 0 12px"></div>
     <button class="btn" id="dOk">Отлично</button>
+  </div>
+</div>
+
+<!-- Редактор: ластик и композиция -->
+<div class="editor" id="editor">
+  <div class="ed-top">
+    <button class="ed-btn" id="edBack">←</button>
+    <div class="t">Редактор</div>
+    <select id="edFmt"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="pdf">PDF</option></select>
+    <button class="ed-save" id="edSave">Сохранить</button>
+  </div>
+  <div class="ed-stage" id="edStage">
+    <canvas id="edCv"></canvas>
+    <div class="ed-zoom"><button id="edZin">+</button><button id="edZout">−</button><button id="edFit">⤢</button></div>
+  </div>
+  <div class="ed-panel">
+    <div class="seg" id="edTabs"><button data-t="erase" class="on">Ластик</button><button data-t="layers">Клипарты</button></div>
+    <div class="ed-chips" id="edChips"></div>
+    <div id="edErase">
+      <label class="opt"><span>Размер ластика</span><span class="v" id="vEdBr">36</span></label>
+      <input type="range" id="edBr" min="8" max="140" value="36">
+      <label class="opt"><span>Мягкость края</span><span class="v" id="vEdSoft">30</span></label>
+      <input type="range" id="edSoft" min="0" max="100" value="30">
+      <div class="ed-row"><button class="btn sec" id="edUndo">Отменить стирание</button></div>
+      <div class="hint">Двумя пальцами можно увеличивать, уменьшать и двигать картинку, чтобы стирать точнее. Размер ластика на экране не меняется при увеличении — значит, в приближении он стирает тоньше. Стирается тот слой, который выбран выше.</div>
+    </div>
+    <div id="edLayers" class="hide">
+      <div class="ed-row"><button class="btn" id="edAdd">＋ Добавить клипарт</button></div>
+      <label class="opt"><span>Размер</span><span class="v" id="vEdSize">40</span></label>
+      <input type="range" id="edSize" min="3" max="250" value="40">
+      <label class="opt"><span>Поворот</span><span class="v" id="vEdRot">0</span></label>
+      <input type="range" id="edRot" min="-180" max="180" value="0">
+      <div class="ed-row">
+        <button class="btn sec" id="edFlip">Отразить</button>
+        <button class="btn sec" id="edUp">Выше</button>
+        <button class="btn sec" id="edDown">Ниже</button>
+        <button class="btn sec" id="edDel">Удалить</button>
+      </div>
+      <div class="hint">Коснитесь клипарта на экране, чтобы выбрать его, и тащите одним пальцем. Двумя пальцами — меняйте размер и поворот выбранного клипарта. Кнопками +/− на экране увеличивается вид.</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="picker" style="z-index:35">
+  <div class="sheet">
+    <h3 style="margin:0 0 12px">Выберите клипарт для добавления</h3>
+    <div class="grid" id="pickGrid"></div>
+    <div class="empty hide" id="pickEmpty">В приложении пока нет созданных клипартов.<br>Сначала создайте хотя бы один.</div>
+    <div style="height:12px"></div>
+    <button class="btn sec" id="pickClose">Отмена</button>
   </div>
 </div>
 
@@ -315,6 +387,8 @@ function go(p){
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.p));
 window.onAndroidBack = function(){
+  if ($('picker').classList.contains('show')) { $('picker').classList.remove('show'); return true; }
+  if (ED.open) { $('edBack').click(); return true; }
   if ($('modal').classList.contains('show')) { closeModal(); return true; }
   if ($('done').classList.contains('show')) { $('done').classList.remove('show'); return true; }
   if (page !== 'create') { go('create'); return true; }
@@ -373,7 +447,7 @@ $('file').onchange = async e => {
     const img = await new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>bad(new Error('Не удалось открыть изображение')); i.src=url; });
     S.img = img; S.keys = []; S.pipette = false; $('btnPipette').classList.remove('on'); updatePipUi();
     S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
-    $('btnMake').disabled = false; $('btnPipette').disabled = false;
+    $('btnMake').disabled = false; $('btnEdit').disabled = false; $('btnPipette').disabled = false;
     $('info').textContent = 'Исходник: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px';
     await refreshPreview();
   }catch(err){ toast(err.message); }
@@ -649,22 +723,27 @@ function thumbOf(cv){
   c.imageSmoothingQuality='high'; c.drawImage(cv,0,0,t.width,t.height); return t.toDataURL('image/png');
 }
 
+async function saveFinal(cv, baseName){
+  const o=opts(), fmt=S.fmt;
+  $('busyTxt').textContent='Сохраняю…'; await tick();
+  const blob=await makeBlob(cv,fmt,o);
+  if(!blob) throw new Error('Не удалось собрать файл (слишком большое изображение). Попробуйте меньший масштаб.');
+  const name=fileName(baseName,fmt);
+  const where=await saveToDevice(blob,name,MIME[fmt]);
+  let png=blob;
+  if(fmt!=='png'){
+    let src=cv; if(cv.width*cv.height>16e6){ const k=Math.sqrt(16e6/(cv.width*cv.height)); src=mkCanvas(cv.width*k,cv.height*k); src.getContext('2d').drawImage(cv,0,0,src.width,src.height); }
+    png=await canvasToBlob(src,'image/png');
+  }
+  const rec={id:Date.now()+'-'+Math.random().toString(36).slice(2,7), name, base:baseName, fmt, w:cv.width, h:cv.height, size:blob.size, created:Date.now(), thumb:thumbOf(cv), preview:png, file:blob};
+  await DB.put(rec);
+  showDone(rec,where);
+}
 $('btnMake').onclick=async()=>{
   if(!S.img) return;
   busy(true,'Создаю клипарт высокого разрешения…'); await tick();
-  try{
-    const o=opts(), fmt=S.fmt;
-    const cv=await pipeline(o,true);
-    $('busyTxt').textContent='Сохраняю…'; await tick();
-    const blob=await makeBlob(cv,fmt,o);
-    if(!blob) throw new Error('Не удалось собрать файл (слишком большое изображение). Попробуйте меньший масштаб.');
-    const name=fileName(S.name,fmt);
-    const where=await saveToDevice(blob,name,MIME[fmt]);
-    const png = fmt==='png' ? blob : await canvasToBlob(cv.width*cv.height>16e6 ? (()=>{const k=Math.sqrt(16e6/(cv.width*cv.height)),t=mkCanvas(cv.width*k,cv.height*k);t.getContext('2d').drawImage(cv,0,0,t.width,t.height);return t;})() : cv,'image/png');
-    const rec={id:Date.now()+'-'+Math.random().toString(36).slice(2,7), name, base:S.name, fmt, w:cv.width, h:cv.height, size:blob.size, created:Date.now(), thumb:thumbOf(cv), preview:fmt==='png'?blob:png, file:blob};
-    await DB.put(rec);
-    showDone(rec,where);
-  }catch(err){ toast(err.message||'Ошибка'); }
+  try{ const cv=await pipeline(opts(),true); await saveFinal(cv,S.name); }
+  catch(err){ toast(err.message||'Ошибка'); }
   busy(false);
 };
 
@@ -710,6 +789,278 @@ $('mDel').onclick=async()=>{
   if(!current) return;
   if(!confirm('Удалить клипарт из списка приложения?\n(Файл в галерее останется.)')) return;
   await DB.del(current.id); closeModal(); renderAll(); toast('Удалено из списка');
+};
+
+/* ================= Редактор: ластик и композиция ================= */
+const ED = { open:false, layers:[], sel:0, tool:'erase', W:0, H:0, vz:1, vx:0, vy:0, fitZ:1, brush:36, soft:0.3,
+             ptrs:new Map(), g:null, hover:null, hist:[], dirty:false, name:'clipart', dpr:1, nameN:0 };
+const EC = { cv:$('edCv'), stage:$('edStage') };
+const WORK_MAX = 4096, PREV_MAX = 1200, MARGIN = 1.6;
+
+function cloneCv(src,w,h){ const c=mkCanvas(w||src.width,h||src.height); const x=c.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(src,0,0,c.width,c.height); return c; }
+function makeLayer(cv,name){
+  const full=cloneCv(cv), ps=Math.min(1,PREV_MAX/Math.max(full.width,full.height));
+  const prev=cloneCv(full,Math.round(full.width*ps),Math.round(full.height*ps));
+  return { name, orig:cloneCv(full), full, origPrev:cloneCv(prev), prev, ps:prev.width/full.width, cx:0, cy:0, s:1, rot:0, flip:false, strokes:[] };
+}
+function l2c(L,x,y){
+  const lx=(x-L.full.width/2)*(L.flip?-1:1)*L.s, ly=(y-L.full.height/2)*L.s, c=Math.cos(L.rot), s=Math.sin(L.rot);
+  return [L.cx+lx*c-ly*s, L.cy+lx*s+ly*c];
+}
+function c2l(L,X,Y){
+  const dx=X-L.cx, dy=Y-L.cy, c=Math.cos(-L.rot), s=Math.sin(-L.rot);
+  let lx=(dx*c-dy*s)/L.s; const ly=(dx*s+dy*c)/L.s; if(L.flip) lx=-lx;
+  return [lx+L.full.width/2, ly+L.full.height/2];
+}
+const s2c = (sx,sy) => [(sx-ED.vx)/ED.vz, (sy-ED.vy)/ED.vz];
+
+/* --- кисть ластика (штампы с мягким краем) --- */
+function stamp(ctx,x,y,r,h){
+  if(h>=0.98){ ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); return; }
+  const g=ctx.createRadialGradient(x,y,r*h,x,y,r); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+}
+function paintPts(ctx,k,pts,r,h){
+  ctx.save(); ctx.globalCompositeOperation='destination-out';
+  const rr=Math.max(0.6,r*k), step=Math.max(0.5,rr*0.22);
+  for(let i=0;i<pts.length;i++){
+    const x=pts[i][0]*k, y=pts[i][1]*k;
+    if(i===0){ stamp(ctx,x,y,rr,h); continue; }
+    const px=pts[i-1][0]*k, py=pts[i-1][1]*k, dx=x-px, dy=y-py, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/step));
+    for(let j=1;j<=n;j++) stamp(ctx,px+dx*j/n,py+dy*j/n,rr,h);
+  }
+  ctx.restore();
+}
+function rebuild(L){
+  const f=L.full.getContext('2d'), p=L.prev.getContext('2d');
+  f.clearRect(0,0,L.full.width,L.full.height); f.drawImage(L.orig,0,0);
+  p.clearRect(0,0,L.prev.width,L.prev.height); p.drawImage(L.origPrev,0,0);
+  L.strokes.forEach(s=>{ paintPts(f,1,s.pts,s.r,s.h); paintPts(p,L.ps,s.pts,s.r,s.h); });
+}
+
+/* --- отрисовка --- */
+function edResize(){
+  const r=EC.stage.getBoundingClientRect(); ED.dpr=Math.min(2,window.devicePixelRatio||1);
+  EC.cv.width=Math.max(1,Math.round(r.width*ED.dpr)); EC.cv.height=Math.max(1,Math.round(r.height*ED.dpr));
+  ED.sw=r.width; ED.sh=r.height;
+}
+function edFit(){
+  ED.fitZ=Math.min(ED.sw/ED.W, ED.sh/ED.H)*0.94; ED.vz=ED.fitZ;
+  ED.vx=(ED.sw-ED.W*ED.vz)/2; ED.vy=(ED.sh-ED.H*ED.vz)/2; edRender();
+}
+function edZoomAt(f,cx,cy){
+  const nz=Math.min(Math.max(ED.vz*f, ED.fitZ*0.25), Math.max(10,ED.fitZ*40)), c=s2c(cx,cy);
+  ED.vz=nz; ED.vx=cx-c[0]*nz; ED.vy=cy-c[1]*nz; edRender();
+}
+function edRender(){
+  if(!ED.open) return;
+  const c=EC.cv, ctx=c.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,c.width,c.height); ctx.setTransform(ED.dpr,0,0,ED.dpr,0,0);
+  ctx.save(); ctx.strokeStyle='rgba(120,120,160,.7)'; ctx.setLineDash([6,4]); ctx.lineWidth=1;
+  ctx.strokeRect(ED.vx,ED.vy,ED.W*ED.vz,ED.H*ED.vz); ctx.restore();
+  ctx.imageSmoothingQuality='high';
+  ED.layers.forEach(L=>{
+    ctx.save(); ctx.translate(ED.vx+L.cx*ED.vz, ED.vy+L.cy*ED.vz); ctx.rotate(L.rot);
+    const k=L.s*ED.vz; ctx.scale(L.flip?-k:k,k);
+    const src=(k*ED.dpr>L.ps*1.0001)?L.full:L.prev;
+    ctx.drawImage(src,-L.full.width/2,-L.full.height/2,L.full.width,L.full.height); ctx.restore();
+  });
+  const L=ED.layers[ED.sel];
+  if(ED.tool==='layers' && L){
+    const w=L.full.width,h=L.full.height, pts=[[0,0],[w,0],[w,h],[0,h]].map(p=>l2c(L,p[0],p[1]));
+    ctx.save(); ctx.strokeStyle='#ff5fa2'; ctx.lineWidth=2; ctx.setLineDash([8,5]); ctx.beginPath();
+    pts.forEach((p,i)=>{ const x=ED.vx+p[0]*ED.vz, y=ED.vy+p[1]*ED.vz; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); ctx.stroke(); ctx.restore();
+  }
+  if(ED.tool==='erase' && ED.hover){
+    ctx.save(); ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.beginPath(); ctx.arc(ED.hover[0],ED.hover[1],ED.brush/2,0,7); ctx.stroke();
+    ctx.lineWidth=1; ctx.strokeStyle='#000'; ctx.beginPath(); ctx.arc(ED.hover[0],ED.hover[1],ED.brush/2+1.5,0,7); ctx.stroke(); ctx.restore();
+  }
+}
+
+/* --- жесты --- */
+const dist2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]), ang2=(a,b)=>Math.atan2(b[1]-a[1],b[0]-a[0]);
+function ptOf(e){ const r=EC.cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
+function hitTest(sx,sy){
+  const c=s2c(sx,sy);
+  for(let i=ED.layers.length-1;i>=0;i--){
+    const L=ED.layers[i], p=c2l(L,c[0],c[1]);
+    if(p[0]<0||p[1]<0||p[0]>=L.full.width||p[1]>=L.full.height) continue;
+    try{ const a=L.prev.getContext('2d').getImageData(Math.min(L.prev.width-1,Math.floor(p[0]*L.ps)),Math.min(L.prev.height-1,Math.floor(p[1]*L.ps)),1,1).data[3]; if(a>12) return i; }catch(e){ return i; }
+  }
+  return -1;
+}
+function eraseTo(pt){
+  const g=ED.g, L=g.L, c=s2c(pt[0],pt[1]), p=c2l(L,c[0],c[1]), last=g.stroke.pts[g.stroke.pts.length-1];
+  if(Math.hypot(p[0]-last[0],p[1]-last[1])<0.3) return;
+  g.stroke.pts.push(p);
+  const seg=[last,p]; paintPts(L.full.getContext('2d'),1,seg,g.stroke.r,g.stroke.h); paintPts(L.prev.getContext('2d'),L.ps,seg,g.stroke.r,g.stroke.h);
+}
+function commitStroke(){
+  const g=ED.g; if(g && g.type==='erase' && g.stroke){ g.L.strokes.push(g.stroke); ED.hist.push(g.L); ED.dirty=true; }
+}
+EC.cv.addEventListener('pointerdown',e=>{
+  if(!ED.open) return; e.preventDefault();
+  try{ EC.cv.setPointerCapture(e.pointerId); }catch(_){}
+  ED.ptrs.set(e.pointerId,ptOf(e));
+  const pts=[...ED.ptrs.values()];
+  if(pts.length===1){
+    const pt=pts[0];
+    if(ED.tool==='erase'){
+      const L=ED.layers[ED.sel]; if(!L) return;
+      const c=s2c(pt[0],pt[1]), p=c2l(L,c[0],c[1]);
+      const r=(ED.brush/2/ED.vz)/L.s;
+      ED.g={type:'erase',L,stroke:{pts:[p],r,h:1-ED.soft}}; ED.hover=pt;
+      paintPts(L.full.getContext('2d'),1,[p],r,1-ED.soft); paintPts(L.prev.getContext('2d'),L.ps,[p],r,1-ED.soft);
+    } else {
+      const hit=hitTest(pt[0],pt[1]);
+      if(hit>=0){ ED.sel=hit; edSync(); ED.g={type:'drag',L:ED.layers[hit],start:pt,cx:ED.layers[hit].cx,cy:ED.layers[hit].cy,moved:false}; }
+      else ED.g={type:'pan',start:pt,vx:ED.vx,vy:ED.vy};
+    }
+  } else if(pts.length===2){
+    commitStroke();
+    const L=ED.layers[ED.sel], d=dist2(pts[0],pts[1]), mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
+    if(ED.tool==='layers' && L) ED.g={type:'lpinch',L,d0:d,a0:ang2(pts[0],pts[1]),s0:L.s,r0:L.rot};
+    else { const c=s2c(mid[0],mid[1]); ED.g={type:'vpinch',d0:d,c0:c,z0:ED.vz}; }
+    ED.hover=null;
+  } else { ED.g={type:'ignore'}; }
+  edRender();
+});
+EC.cv.addEventListener('pointermove',e=>{
+  if(!ED.open||!ED.ptrs.has(e.pointerId)) { if(ED.open && ED.tool==='erase' && e.pointerType==='mouse'){ ED.hover=ptOf(e); edRender(); } return; }
+  e.preventDefault(); ED.ptrs.set(e.pointerId,ptOf(e));
+  const pts=[...ED.ptrs.values()], g=ED.g; if(!g) return;
+  if(pts.length===1){
+    const pt=pts[0];
+    if(g.type==='erase'){ ED.hover=pt; eraseTo(pt); }
+    else if(g.type==='drag'){ g.L.cx=g.cx+(pt[0]-g.start[0])/ED.vz; g.L.cy=g.cy+(pt[1]-g.start[1])/ED.vz; ED.dirty=true; }
+    else if(g.type==='pan'){ ED.vx=g.vx+pt[0]-g.start[0]; ED.vy=g.vy+pt[1]-g.start[1]; }
+  } else if(pts.length===2){
+    const d=dist2(pts[0],pts[1]), mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
+    if(g.type==='lpinch'){
+      g.L.s=Math.min(Math.max(g.s0*d/g.d0, 0.01), 40); g.L.rot=g.r0+(ang2(pts[0],pts[1])-g.a0); ED.dirty=true; edSync(true);
+    } else if(g.type==='vpinch'){
+      const nz=Math.min(Math.max(g.z0*d/g.d0, ED.fitZ*0.25), Math.max(10,ED.fitZ*40));
+      ED.vz=nz; ED.vx=mid[0]-g.c0[0]*nz; ED.vy=mid[1]-g.c0[1]*nz;
+    }
+  }
+  edRender();
+});
+function ptrEnd(e){
+  if(!ED.ptrs.has(e.pointerId)) return;
+  ED.ptrs.delete(e.pointerId);
+  if(ED.ptrs.size===0){ commitStroke(); ED.g=null; ED.hover=null; edSync(); }
+  else if(ED.ptrs.size===1){ ED.g={type:'ignore'}; }
+  edUpdUndo(); edRender();
+}
+EC.cv.addEventListener('pointerup',ptrEnd); EC.cv.addEventListener('pointercancel',ptrEnd);
+
+/* --- панель --- */
+function edSync(sliderOnly){
+  const L=ED.layers[ED.sel];
+  if(L){
+    $('edSize').value=Math.round(L.full.width*L.s/ED.W*100); $('vEdSize').textContent=$('edSize').value;
+    let deg=Math.round(L.rot*180/Math.PI); deg=((deg+180)%360+360)%360-180; $('edRot').value=deg; $('vEdRot').textContent=deg;
+  }
+  if(sliderOnly) return;
+  const box=$('edChips'); box.innerHTML='';
+  ED.layers.forEach((l,i)=>{ const b=document.createElement('button'); b.textContent=l.name; b.className=i===ED.sel?'on':''; b.onclick=()=>{ ED.sel=i; edSync(); edRender(); }; box.appendChild(b); });
+  edUpdUndo();
+}
+function edUpdUndo(){ $('edUndo').disabled = !ED.hist.some(L=>ED.layers.indexOf(L)>=0 && L.strokes.length); }
+$('edTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  ED.tool=b.dataset.t; $('edTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  $('edErase').classList.toggle('hide',ED.tool!=='erase'); $('edLayers').classList.toggle('hide',ED.tool!=='layers'); ED.hover=null; edRender();
+});
+$('edBr').oninput=()=>{ ED.brush=+$('edBr').value; $('vEdBr').textContent=ED.brush; };
+$('edSoft').oninput=()=>{ ED.soft=+$('edSoft').value/100; $('vEdSoft').textContent=$('edSoft').value; };
+$('edUndo').onclick=()=>{
+  while(ED.hist.length){ const L=ED.hist.pop(); if(ED.layers.indexOf(L)>=0 && L.strokes.length){ L.strokes.pop(); rebuild(L); break; } }
+  edUpdUndo(); edRender();
+};
+$('edSize').oninput=()=>{ const L=ED.layers[ED.sel]; if(!L) return; L.s=(+$('edSize').value)/100*ED.W/L.full.width; $('vEdSize').textContent=$('edSize').value; ED.dirty=true; edRender(); };
+$('edRot').oninput=()=>{ const L=ED.layers[ED.sel]; if(!L) return; L.rot=(+$('edRot').value)*Math.PI/180; $('vEdRot').textContent=$('edRot').value; ED.dirty=true; edRender(); };
+$('edFlip').onclick=()=>{ const L=ED.layers[ED.sel]; if(L){ L.flip=!L.flip; ED.dirty=true; edRender(); } };
+$('edUp').onclick=()=>{ const i=ED.sel; if(i<ED.layers.length-1){ [ED.layers[i],ED.layers[i+1]]=[ED.layers[i+1],ED.layers[i]]; ED.sel=i+1; ED.dirty=true; edSync(); edRender(); } };
+$('edDown').onclick=()=>{ const i=ED.sel; if(i>0){ [ED.layers[i],ED.layers[i-1]]=[ED.layers[i-1],ED.layers[i]]; ED.sel=i-1; ED.dirty=true; edSync(); edRender(); } };
+$('edDel').onclick=()=>{
+  if(ED.layers.length<=1){ toast('Нельзя удалить единственный слой'); return; }
+  ED.layers.splice(ED.sel,1); ED.sel=Math.min(ED.sel,ED.layers.length-1); ED.dirty=true; edSync(); edRender();
+};
+$('edZin').onclick=()=>edZoomAt(1.4,ED.sw/2,ED.sh/2);
+$('edZout').onclick=()=>edZoomAt(1/1.4,ED.sw/2,ED.sh/2);
+$('edFit').onclick=edFit;
+$('edFmt').onchange=()=>{ const b=$('fmtSeg').querySelector('[data-v="'+$('edFmt').value+'"]'); if(b) b.click(); };
+window.addEventListener('resize',()=>{ if(ED.open){ edResize(); edFit(); } });
+
+/* --- добавление клипарта из «Все клипарты» --- */
+function loadBlobCanvas(blob){
+  return new Promise((ok,bad)=>{
+    const u=URL.createObjectURL(blob), im=new Image();
+    im.onload=()=>{ const k=Math.min(1,2048/Math.max(im.naturalWidth,im.naturalHeight)), c=mkCanvas(im.naturalWidth*k,im.naturalHeight*k);
+      const x=c.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u); ok(c); };
+    im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error('Не удалось открыть клипарт')); };
+    im.src=u;
+  });
+}
+$('edAdd').onclick=async()=>{
+  const list=await DB.all(), g=$('pickGrid'); g.innerHTML=''; $('pickEmpty').classList.toggle('hide',list.length>0);
+  list.forEach(r=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML='<div class="th"><img alt=""></div><div class="meta"><b>'+r.fmt.toUpperCase()+'</b><span>'+r.w+'×'+r.h+'</span></div>';
+    d.querySelector('img').src=r.thumb;
+    d.onclick=async()=>{
+      $('picker').classList.remove('show'); busy(true,'Добавляю клипарт…'); await tick();
+      try{
+        const cv=await loadBlobCanvas(r.preview||r.file), L=makeLayer(cv,'Клипарт '+(++ED.nameN));
+        L.s=0.4*ED.W/L.full.width; if(L.full.height*L.s>ED.H*0.9) L.s=0.9*ED.H/L.full.height;
+        const o=(ED.layers.length%4)*0.05; L.cx=ED.W*(0.5+o); L.cy=ED.H*(0.5+o);
+        ED.layers.push(L); ED.sel=ED.layers.length-1; ED.dirty=true; edSync(); edRender();
+      }catch(err){ toast(err.message); }
+      busy(false);
+    };
+    g.appendChild(d);
+  });
+  $('picker').classList.add('show');
+};
+$('pickClose').onclick=()=>$('picker').classList.remove('show');
+
+/* --- открытие / закрытие / сохранение --- */
+function openEditor(baseCv,name){
+  const f=Math.min(1, WORK_MAX/(Math.max(baseCv.width,baseCv.height)*MARGIN));
+  const bw=Math.max(1,Math.round(baseCv.width*f)), bh=Math.max(1,Math.round(baseCv.height*f));
+  ED.W=Math.round(bw*MARGIN); ED.H=Math.round(bh*MARGIN);
+  const L=makeLayer(cloneCv(baseCv,bw,bh),'Основа'); L.cx=ED.W/2; L.cy=ED.H/2;
+  Object.assign(ED,{layers:[L],sel:0,tool:'erase',hist:[],dirty:false,name:name||'clipart',ptrs:new Map(),g:null,hover:null,nameN:0});
+  $('edTabs').querySelector('[data-t="erase"]').click();
+  $('edFmt').value=S.fmt;
+  $('editor').classList.add('show'); ED.open=true;
+  edResize(); edFit(); edSync();
+}
+function closeEditor(){ ED.open=false; $('editor').classList.remove('show'); $('picker').classList.remove('show'); ED.layers=[]; ED.hist=[]; }
+$('edBack').onclick=()=>{ if(ED.dirty && !confirm('Выйти из редактора без сохранения изменений?')) return; closeEditor(); };
+function edCompose(){
+  const out=mkCanvas(ED.W,ED.H), c=out.getContext('2d'); c.imageSmoothingQuality='high';
+  ED.layers.forEach(L=>{ c.save(); c.translate(L.cx,L.cy); c.rotate(L.rot); c.scale(L.flip?-L.s:L.s,L.s); c.drawImage(L.full,-L.full.width/2,-L.full.height/2); c.restore(); });
+  return cropToContent(out, Math.max(2,Math.round(Math.max(ED.W,ED.H)*0.005)));
+}
+$('edSave').onclick=async()=>{
+  if(!ED.open) return; busy(true,'Собираю композицию…'); await tick();
+  try{
+    const cv=edCompose();
+    await saveFinal(cv, ED.name);
+    closeEditor(); if(page==='all') renderAll();
+  }catch(err){ toast(err.message||'Ошибка'); }
+  busy(false);
+};
+$('btnEdit').onclick=async()=>{
+  if(!S.img) return; busy(true,'Готовлю редактор…'); await tick();
+  try{ const cv=await pipeline(opts(),true); openEditor(cv,S.name); }catch(err){ toast(err.message||'Ошибка'); }
+  busy(false);
+};
+$('mEdit').onclick=async()=>{
+  if(!current) return; const r=current; busy(true,'Готовлю редактор…'); await tick();
+  try{ const cv=await loadBlobCanvas(r.preview||r.file); closeModal(); openEditor(cv,r.base||'clipart'); }catch(err){ toast(err.message||'Ошибка'); }
+  busy(false);
 };
 
 /* ================= Старт ================= */
