@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Rin-klipart</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="fonts/fonts.js"></script>
+<style>
+:root{
+  --bg:#f4f0ff;--bg2:#ffffff;--card:#ffffff;--text:#241a45;--muted:#7a6fa0;
+  --acc:#6c3ff5;--acc2:#ff5fa2;--line:#e4dcff;--on-acc:#ffffff;--chk1:#ffffff;--chk2:#e9e4f8;
+  --ui-font:'Rin Default',system-ui,-apple-system,'Roboto',sans-serif;
+  --r:20px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--ui-font);overflow:hidden}
+button,input,select{font-family:inherit;color:inherit}
+body{display:flex;flex-direction:column;transition:background .3s}
+header{padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;display:flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);border-radius:0 0 26px 26px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+header svg{width:38px;height:38px;flex:none}
+header h1{margin:0;font-size:22px;letter-spacing:.3px}
+header small{display:block;opacity:.85;font-size:12px;margin-top:1px}
+main{flex:1;overflow-y:auto;padding:16px 16px 100px;-webkit-overflow-scrolling:touch}
+.tabs{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);display:flex;gap:6px;padding:6px;
+  background:var(--card);border-radius:24px;box-shadow:0 8px 28px rgba(0,0,0,.2);border:1px solid var(--line);z-index:5}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 4px;border-radius:18px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tabs button.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.05)}
+.card h3{margin:0 0 12px;font-size:16px}
+.btn{border:0;border-radius:16px;padding:13px 18px;font-size:15px;font-weight:600;background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);box-shadow:0 6px 16px rgba(0,0,0,.18);width:100%}
+.btn:active{transform:scale(.98)}
+.btn.sec{background:var(--bg);color:var(--text);box-shadow:none;border:1px solid var(--line)}
+.btn[disabled]{opacity:.5}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+.stage{position:relative;border-radius:16px;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center;
+  background-image:linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%),linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%);
+  background-color:var(--chk1);background-size:20px 20px;background-position:0 0,10px 10px}
+.stage canvas,.stage img{max-width:100%;max-height:48vh;display:block}
+.empty{padding:34px 12px;text-align:center;color:var(--muted);font-size:14px}
+.empty svg{width:64px;height:64px;stroke:var(--acc);fill:none;stroke-width:1.6;margin-bottom:8px}
+label.opt{display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:14px;border-bottom:1px dashed var(--line)}
+label.opt:last-child{border-bottom:0}
+.opt .v{color:var(--acc);font-weight:700;min-width:44px;text-align:right}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sw{position:relative;width:48px;height:28px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:2}
+.sw i{position:absolute;inset:0;background:var(--line);border-radius:14px;transition:.2s}
+.sw i:after{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;left:3px;top:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+i{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.sw input:checked+i:after{left:23px}
+.seg{display:flex;background:var(--bg);border-radius:14px;padding:4px;border:1px solid var(--line)}
+.seg button{flex:1;border:0;background:transparent;padding:10px 4px;border-radius:11px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.item .th{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background-image:linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%),linear-gradient(45deg,var(--chk2) 25%,transparent 25%,transparent 75%,var(--chk2) 75%);background-color:var(--chk1);background-size:16px 16px;background-position:0 0,8px 8px}
+.item .th img{max-width:100%;max-height:100%;object-fit:contain}
+.item .meta{padding:8px 10px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.item .meta b{color:var(--text)}
+.themes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.theme{border:2px solid transparent;border-radius:16px;padding:0;background:none;text-align:center;font-size:10px;color:var(--muted)}
+.theme .sq{height:46px;border-radius:14px;margin-bottom:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.theme.on{border-color:var(--acc);color:var(--text);font-weight:700}
+.fonts{max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:16px}
+.font{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:19px;background:var(--card);width:100%;border-left:0;border-right:0;border-top:0;text-align:left}
+.font small{font-family:var(--ui-font);font-size:11px;color:var(--muted)}
+.font.on{background:linear-gradient(90deg,var(--bg),var(--card));color:var(--acc)}
+.font.on:after{content:"✓";font-family:system-ui}
+.modal{position:fixed;inset:0;background:rgba(10,5,30,.6);z-index:20;display:none;align-items:flex-end}
+.modal.show{display:flex}
+.sheet{background:var(--bg2);width:100%;border-radius:26px 26px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom) + 18px);max-height:92vh;overflow-y:auto}
+.sheet .stage{margin-bottom:12px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 80px);transform:translateX(-50%) translateY(-20px);background:var(--text);color:var(--bg);padding:12px 18px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;z-index:50;pointer-events:none;max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.busy{position:fixed;inset:0;background:rgba(20,10,50,.55);display:none;align-items:center;justify-content:center;z-index:40;color:#fff;flex-direction:column;gap:14px;font-size:15px}
+.busy.show{display:flex}
+.spin{width:46px;height:46px;border:5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+.hide{display:none!important}
+.colorrow{display:flex;gap:8px;align-items:center}
+input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-radius:10px;padding:0;background:none}
+.pill{display:inline-block;padding:3px 10px;border-radius:12px;background:var(--bg);font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 108 108" aria-hidden="true">
+    <rect x="12" y="10" width="46" height="38" rx="6" fill="#fff"/>
+    <path d="M15,44 L28,26 L37,37 L43,30 L55,44 Z" fill="#7c4dff"/>
+    <circle cx="46" cy="20" r="4" fill="#ffb300"/>
+    <g stroke-linecap="round" fill="none">
+      <path d="M30,74 L84,68" stroke="#2a1066" stroke-width="8"/><path d="M38,92 L82,46" stroke="#2a1066" stroke-width="8"/>
+      <circle cx="26" cy="74" r="8" stroke="#2a1066" stroke-width="7"/><circle cx="34" cy="94" r="8" stroke="#2a1066" stroke-width="7"/>
+      <path d="M30,74 L84,68" stroke="#fff" stroke-width="4"/><path d="M38,92 L82,46" stroke="#fff" stroke-width="4"/>
+      <circle cx="26" cy="74" r="8" stroke="#fff" stroke-width="3"/><circle cx="34" cy="94" r="8" stroke="#fff" stroke-width="3"/>
+    </g>
+  </svg>
+  <div><h1>Rin-klipart</h1><small>Клипарт высокого разрешения из любой картинки</small></div>
+</header>
+
+<main id="main">
+
+  <!-- СОЗДАТЬ -->
+  <section id="p-create">
+    <div class="card">
+      <div class="stage" id="stage">
+        <div class="empty" id="empty">
+          <svg viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="40" rx="6"/><path d="M12 46l14-16 10 11 7-7 9 12"/><circle cx="42" cy="24" r="4"/></svg>
+          <div>Загрузите изображение,<br>чтобы сделать из него клипарт</div>
+        </div>
+        <canvas id="view" class="hide"></canvas>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnPick">Загрузить картинку</button>
+        <button class="btn sec" id="btnPipette" disabled>Пипетка фона</button>
+      </div>
+      <div class="hint" id="info"></div>
+      <input type="file" id="file" accept="image/*" class="hide">
+    </div>
+
+    <div class="card">
+      <h3>Обработка</h3>
+      <label class="opt"><span>Убрать фон</span><span class="sw"><input type="checkbox" id="oBg" checked><i></i></span></label>
+      <div id="bgBox">
+        <label class="opt"><span>Чувствительность</span><span class="v" id="vTol">40</span></label>
+        <input type="range" id="oTol" min="5" max="120" value="40">
+        <label class="opt"><span>Сглаживание края</span><span class="v" id="vSoft">1</span></label>
+        <input type="range" id="oSoft" min="0" max="4" value="1">
+        <div class="hint" id="keyHint">Цвет фона определяется по краям картинки. Если фон убрался не полностью — нажмите «Пипетка фона» и коснитесь фона на картинке.</div>
+      </div>
+      <label class="opt"><span>Обрезать пустые края</span><span class="sw"><input type="checkbox" id="oCrop" checked><i></i></span></label>
+      <label class="opt"><span>Белая обводка (стикер)</span><span class="sw"><input type="checkbox" id="oOut"><i></i></span></label>
+      <div id="outBox" class="hide">
+        <label class="opt"><span>Толщина обводки</span><span class="v" id="vOutW">12</span></label>
+        <input type="range" id="oOutW" min="2" max="60" value="12">
+        <label class="opt"><span>Цвет обводки</span><span class="colorrow"><input type="color" id="oOutC" value="#ffffff"></span></label>
+      </div>
+      <label class="opt"><span>Резкость</span><span class="v" id="vSharp">0</span></label>
+      <input type="range" id="oSharp" min="0" max="10" value="0">
+    </div>
+
+    <div class="card">
+      <h3>Разрешение и формат</h3>
+      <div class="seg" id="scaleSeg">
+        <button data-v="1">×1</button><button data-v="2" class="on">×2</button><button data-v="3">×3</button><button data-v="4">×4</button>
+      </div>
+      <div class="hint" id="resInfo">Увеличение с повышением резкости. Максимум — 8192 px по длинной стороне.</div>
+      <div style="height:14px"></div>
+      <div class="seg" id="fmtSeg">
+        <button data-v="png" class="on">PNG</button><button data-v="jpeg">JPEG</button><button data-v="pdf">PDF</button>
+      </div>
+      <div id="jpgBox" class="hide" style="margin-top:12px">
+        <label class="opt"><span>Цвет фона (для JPEG и PDF)</span><span class="colorrow"><input type="color" id="oBgC" value="#ffffff"></span></label>
+        <label class="opt"><span>Качество JPEG</span><span class="v" id="vQ">95</span></label>
+        <input type="range" id="oQ" min="60" max="100" value="95">
+      </div>
+      <div class="hint" id="fmtHint">PNG сохраняет прозрачность. Файл попадёт в Галерею, в альбом Rin-klipart.</div>
+    </div>
+
+    <button class="btn" id="btnMake" disabled style="font-size:17px;padding:16px">Создать клипарт</button>
+  </section>
+
+  <!-- ВСЕ КЛИПАРТЫ -->
+  <section id="p-all" class="hide">
+    <div class="row" style="margin-bottom:12px;align-items:center">
+      <div class="pill" id="countPill">0 клипартов</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hide" id="allEmpty">
+      <svg viewBox="0 0 64 64"><path d="M14 20h36v30H14z"/><path d="M22 20v-6h20v6"/></svg>
+      <div>Здесь появятся все клипарты,<br>которые вы создадите в приложении</div>
+    </div>
+  </section>
+
+  <!-- НАСТРОЙКИ -->
+  <section id="p-set" class="hide">
+    <div class="card"><h3>Тема оформления <span class="pill" id="themeName"></span></h3><div class="themes" id="themes"></div></div>
+    <div class="card"><h3>Шрифт приложения <span class="pill" id="fontCount"></span></h3>
+      <div class="fonts" id="fonts"></div>
+      <div class="hint">Шрифты встроены в приложение и работают без интернета.</div>
+    </div>
+    <div class="card"><h3>О приложении</h3>
+      <div class="hint" style="font-size:13px">Rin-klipart делает клипарты высокого разрешения из ваших изображений: убирает фон, обводит контур, увеличивает и сохраняет в PNG, JPEG или PDF прямо в Галерею. Всё работает на вашем телефоне, без загрузки картинок в интернет.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-p="create" class="on"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>Создать</button>
+  <button data-p="all"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Все клипарты</button>
+  <button data-p="set"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Темы и шрифты</button>
+</nav>
+
+<!-- Просмотр клипарта -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="stage" id="mStage"></div>
+    <div class="hint" id="mInfo" style="margin:0 0 12px"></div>
+    <div class="row">
+      <button class="btn" id="mSave">Сохранить в галерею</button>
+      <button class="btn sec" id="mDel">Удалить</button>
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn sec" id="mClose">Закрыть</button>
+  </div>
+</div>
+
+<!-- Результат -->
+<div class="modal" id="done">
+  <div class="sheet">
+    <h3 style="margin:0 0 12px">Клипарт готов ✨</h3>
+    <div class="stage" id="dStage"></div>
+    <div class="hint" id="dInfo" style="margin:0 0 12px"></div>
+    <button class="btn" id="dOk">Отлично</button>
+  </div>
+</div>
+
+<div class="busy" id="busy"><div class="spin"></div><div id="busyTxt">Обработка…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ================= Утилиты ================= */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+};
+let toastT;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3200); }
+function busy(on, txt){ $('busy').classList.toggle('show', !!on); if(txt) $('busyTxt').textContent=txt; }
+const tick = () => new Promise(r => setTimeout(r, 30));
+const MAXSIDE = 8192, MAXPIX = 48e6;
+
+/* ================= Темы (20) ================= */
+const THEMES = [
+ {n:'Лавандовый сон', bg:'#f4f0ff',card:'#ffffff',text:'#241a45',muted:'#7a6fa0',acc:'#6c3ff5',acc2:'#ff5fa2',line:'#e4dcff'},
+ {n:'Розовый зефир',  bg:'#fff0f6',card:'#ffffff',text:'#4a1830',muted:'#a0617f',acc:'#ff4d8d',acc2:'#ffa14d',line:'#ffd9e8'},
+ {n:'Мятная свежесть',bg:'#eafaf4',card:'#ffffff',text:'#0f3d31',muted:'#5c9486',acc:'#10b981',acc2:'#06b6d4',line:'#c8efe2'},
+ {n:'Океан',          bg:'#e8f4ff',card:'#ffffff',text:'#0b2a4a',muted:'#5b82a8',acc:'#1d7ff0',acc2:'#12d1c1',line:'#cde5fb'},
+ {n:'Закат',          bg:'#fff3e8',card:'#ffffff',text:'#4a2210',muted:'#a87355',acc:'#ff7a1a',acc2:'#ff3d6e',line:'#ffdcc2'},
+ {n:'Лесной мох',     bg:'#eef5e6',card:'#ffffff',text:'#1f3312',muted:'#6f8c5a',acc:'#5a9e2f',acc2:'#c7b41d',line:'#d6e8c5'},
+ {n:'Лимонад',        bg:'#fffbe0',card:'#ffffff',text:'#3d3500',muted:'#9a8c3a',acc:'#f2b800',acc2:'#ff7a00',line:'#f8ecaa'},
+ {n:'Сакура',         bg:'#fdf1f4',card:'#ffffff',text:'#3b1a24',muted:'#a56b7b',acc:'#e75480',acc2:'#b36bff',line:'#f8d7e0'},
+ {n:'Полночь',        bg:'#0f1020',card:'#1a1b33',text:'#ecebff',muted:'#8f8fc0',acc:'#7c6cff',acc2:'#ff6ad5',line:'#2c2d52',dark:1},
+ {n:'Графит',         bg:'#121316',card:'#1d1f24',text:'#f1f2f4',muted:'#9399a3',acc:'#4ea1ff',acc2:'#a06bff',line:'#2e3139',dark:1},
+ {n:'Неон',           bg:'#0a0a14',card:'#14142a',text:'#eafff8',muted:'#7fb5a6',acc:'#00f0b5',acc2:'#ff2bd6',line:'#24244a',dark:1},
+ {n:'Киберпанк',      bg:'#140a1f',card:'#22102f',text:'#fff0fb',muted:'#c28bb8',acc:'#ff2e88',acc2:'#ffd400',line:'#3a1c4d',dark:1},
+ {n:'Изумруд',        bg:'#07211a',card:'#0e332a',text:'#e3fff4',muted:'#7fbfa6',acc:'#2de08f',acc2:'#7ae0ff',line:'#17493c',dark:1},
+ {n:'Бордо',          bg:'#2a0d17',card:'#3b1522',text:'#ffe8ee',muted:'#d28a9e',acc:'#ff4d6d',acc2:'#ffb347',line:'#59263a',dark:1},
+ {n:'Кофе с молоком', bg:'#f6eee6',card:'#fffaf5',text:'#3a2517',muted:'#9b7b66',acc:'#a8663a',acc2:'#e0a458',line:'#ead8c6'},
+ {n:'Небо',           bg:'#eef7ff',card:'#ffffff',text:'#14324d',muted:'#6c93b3',acc:'#38a3ff',acc2:'#8f7bff',line:'#d4e8f9'},
+ {n:'Фуксия',         bg:'#fbeeff',card:'#ffffff',text:'#34104a',muted:'#9a6bb3',acc:'#c026d3',acc2:'#6366f1',line:'#f0d4fa'},
+ {n:'Мандарин',       bg:'#fff1e6',card:'#ffffff',text:'#4a1f00',muted:'#b0713f',acc:'#ff6b00',acc2:'#ffc400',line:'#ffd9b8'},
+ {n:'Северное сияние',bg:'#0b1a26',card:'#12293a',text:'#e6faff',muted:'#7eb4c9',acc:'#2ee6c0',acc2:'#7a8cff',line:'#1f3f55',dark:1},
+ {n:'Бумага',         bg:'#f7f7f5',card:'#ffffff',text:'#222222',muted:'#7d7d78',acc:'#333333',acc2:'#e0556b',line:'#e5e5e0'}
+];
+function applyTheme(i){
+  const t = THEMES[i] || THEMES[0], s = document.documentElement.style;
+  s.setProperty('--bg',t.bg); s.setProperty('--bg2',t.card); s.setProperty('--card',t.card);
+  s.setProperty('--text',t.text); s.setProperty('--muted',t.muted);
+  s.setProperty('--acc',t.acc); s.setProperty('--acc2',t.acc2); s.setProperty('--line',t.line);
+  s.setProperty('--on-acc', '#ffffff');
+  s.setProperty('--chk1', t.dark ? '#2a2c3a' : '#ffffff');
+  s.setProperty('--chk2', t.dark ? '#383b4d' : '#e9e4f8');
+  $('themeName').textContent = t.n;
+  document.querySelectorAll('.theme').forEach((b,k)=>b.classList.toggle('on',k===i));
+  try { if (window.Android && Android.setBars) Android.setBars(t.bg, !t.dark); } catch(e){}
+}
+function buildThemes(){
+  const box = $('themes');
+  THEMES.forEach((t,i)=>{
+    const b = document.createElement('button'); b.className='theme';
+    b.innerHTML = '<div class="sq" style="background:linear-gradient(135deg,'+t.acc+','+t.acc2+')"></div>'+t.n;
+    b.onclick = () => { store.set('theme', i); applyTheme(i); };
+    box.appendChild(b);
+  });
+}
+
+/* ================= Шрифты (50) ================= */
+const FONT_LIST = (window.RIN_FONTS && window.RIN_FONTS.length) ? window.RIN_FONTS : ['Rin Default'];
+function applyFont(name){
+  document.documentElement.style.setProperty('--ui-font', "'"+name+"',system-ui,'Roboto',sans-serif");
+  document.querySelectorAll('.font').forEach(b=>b.classList.toggle('on', b.dataset.f===name));
+}
+function buildFonts(){
+  const box = $('fonts');
+  FONT_LIST.forEach(n=>{
+    const b = document.createElement('button'); b.className='font'; b.dataset.f=n;
+    b.innerHTML = '<span style="font-family:\''+n+'\',sans-serif">'+n+' — Привет, мир!</span>';
+    b.onclick = () => { store.set('font', n); applyFont(n); };
+    box.appendChild(b);
+  });
+  $('fontCount').textContent = FONT_LIST.length + ' шрифтов';
+}
+
+/* ================= Навигация ================= */
+let page = 'create';
+function go(p){
+  page = p;
+  ['create','all','set'].forEach(k=>$('p-'+k).classList.toggle('hide', k!==p));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  $('main').scrollTop = 0;
+  if (p==='all') renderAll();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+window.onAndroidBack = function(){
+  if ($('modal').classList.contains('show')) { closeModal(); return true; }
+  if ($('done').classList.contains('show')) { $('done').classList.remove('show'); return true; }
+  if (page !== 'create') { go('create'); return true; }
+  return false;
+};
+
+/* ================= База клипартов (IndexedDB) ================= */
+const DB = (function(){
+  let db = null, mem = [];
+  function open(){
+    return new Promise(res=>{
+      try{
+        const rq = indexedDB.open('rin-klipart', 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore('clips', {keyPath:'id'});
+        rq.onsuccess = () => { db = rq.result; res(); };
+        rq.onerror = () => res();
+      }catch(e){ res(); }
+    });
+  }
+  function all(){
+    return new Promise(res=>{
+      if(!db) return res(mem.slice().sort((a,b)=>b.created-a.created));
+      const out=[]; const rq = db.transaction('clips').objectStore('clips').openCursor();
+      rq.onsuccess = e => { const c=e.target.result; if(c){ out.push(c.value); c.continue(); } else res(out.sort((a,b)=>b.created-a.created)); };
+      rq.onerror = () => res(out);
+    });
+  }
+  function put(rec){
+    return new Promise(res=>{
+      if(!db){ mem.push(rec); return res(); }
+      const tx = db.transaction('clips','readwrite'); tx.objectStore('clips').put(rec);
+      tx.oncomplete = () => res(); tx.onerror = () => { mem.push(rec); res(); };
+    });
+  }
+  function del(id){
+    return new Promise(res=>{
+      mem = mem.filter(r=>r.id!==id);
+      if(!db) return res();
+      const tx = db.transaction('clips','readwrite'); tx.objectStore('clips').delete(id);
+      tx.oncomplete = () => res(); tx.onerror = () => res();
+    });
+  }
+  return {open, all, put, del};
+})();
+
+/* ================= Состояние ================= */
+const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, key:null, preview:null };
+
+/* ================= Загрузка картинки ================= */
+$('btnPick').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  busy(true,'Загружаю картинку…'); await tick();
+  try{
+    const url = URL.createObjectURL(f);
+    const img = await new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>bad(new Error('Не удалось открыть изображение')); i.src=url; });
+    S.img = img; S.key = null; S.pipette = false; $('btnPipette').classList.remove('on');
+    S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
+    $('btnMake').disabled = false; $('btnPipette').disabled = false;
+    $('info').textContent = 'Исходник: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px';
+    await refreshPreview();
+  }catch(err){ toast(err.message); }
+  busy(false); e.target.value='';
+};
+
+/* ================= Обработка ================= */
+function opts(){
+  return {
+    bg: $('oBg').checked, tol: +$('oTol').value, soft: +$('oSoft').value,
+    crop: $('oCrop').checked, out: $('oOut').checked, outW: +$('oOutW').value, outC: $('oOutC').value,
+    sharp: +$('oSharp').value, scale: S.scale, bgc: $('oBgC').value
+  };
+}
+function mkCanvas(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w)); c.height=Math.max(1,Math.round(h)); return c; }
+
+function removeBackground(cv, tol, soft, key){
+  const w=cv.width, h=cv.height, ctx=cv.getContext('2d');
+  const id=ctx.getImageData(0,0,w,h), d=id.data;
+  if(!key){
+    // ключ по среднему цвету рамки в 4 углах и серединах сторон
+    const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1],[0,h>>1],[w-1,h>>1]];
+    let r=0,g=0,b=0,n=0;
+    pts.forEach(p=>{ const i=(p[1]*w+p[0])*4; if(d[i+3]>10){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; } });
+    if(n===0) return;
+    key=[r/n,g/n,b/n];
+  }
+  const lim = tol*tol;
+  const dist = i => { const dr=d[i]-key[0], dg=d[i+1]-key[1], db=d[i+2]-key[2]; return (dr*dr+dg*dg+db*db)/3; };
+  const seen = new Uint8Array(w*h);
+  const q = new Int32Array(w*h); let qh=0, qt=0;
+  const push = p => { if(!seen[p]){ const i=p*4; if(d[i+3]<8 || dist(i)<=lim){ seen[p]=1; q[qt++]=p; } } };
+  for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); }
+  for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+  while(qh<qt){
+    const p=q[qh++], x=p%w, y=(p-x)/w;
+    if(x>0) push(p-1); if(x<w-1) push(p+1); if(y>0) push(p-w); if(y<h-1) push(p+w);
+  }
+  for(let p=0;p<w*h;p++) if(seen[p]) d[p*4+3]=0;
+  // сглаживание края: размытие альфа-канала
+  for(let it=0; it<soft; it++){
+    const a=new Uint8Array(w*h); for(let p=0;p<w*h;p++) a[p]=d[p*4+3];
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){
+      const p=y*w+x; if(a[p]===0 && a[p-1]===0 && a[p+1]===0 && a[p-w]===0 && a[p+w]===0) continue;
+      const s=a[p-w-1]+a[p-w]+a[p-w+1]+a[p-1]+a[p]*2+a[p+1]+a[p+w-1]+a[p+w]+a[p+w+1];
+      d[p*4+3]=Math.round(s/10);
+    }
+  }
+  ctx.putImageData(id,0,0);
+}
+
+function cropToContent(cv, pad){
+  const w=cv.width,h=cv.height, d=cv.getContext('2d').getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++){ const row=y*w*4; for(let x=0;x<w;x++){ if(d[row+x*4+3]>8){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } } }
+  if(x1<0) return cv;
+  x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad); x1=Math.min(w-1,x1+pad); y1=Math.min(h-1,y1+pad);
+  const o=mkCanvas(x1-x0+1,y1-y0+1); o.getContext('2d').drawImage(cv,x0,y0,o.width,o.height,0,0,o.width,o.height); return o;
+}
+
+function upscale(cv, factor){
+  if(factor<=1) return cv;
+  let tw=cv.width*factor, th=cv.height*factor;
+  const k=Math.min(1, MAXSIDE/Math.max(tw,th), Math.sqrt(MAXPIX/(tw*th)));
+  tw=Math.floor(tw*k); th=Math.floor(th*k);
+  let cur=cv;
+  while(cur.width<tw){ // ступенчатое увеличение — мягче и чётче
+    const nw=Math.min(tw,Math.round(cur.width*1.5)), nh=Math.min(th,Math.round(cur.height*1.5));
+    const n=mkCanvas(nw,nh), c=n.getContext('2d'); c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
+    c.drawImage(cur,0,0,nw,nh); cur=n;
+  }
+  return cur;
+}
+
+function sharpen(cv, amount){
+  if(amount<=0) return cv;
+  const w=cv.width,h=cv.height; if(w*h>30e6) return cv;
+  const ctx=cv.getContext('2d'), src=ctx.getImageData(0,0,w,h), s=src.data, dst=ctx.createImageData(w,h), o=dst.data;
+  const a=amount*0.08, c=1+4*a;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const p=(y*w+x)*4;
+    if(x===0||y===0||x===w-1||y===h-1){ o[p]=s[p];o[p+1]=s[p+1];o[p+2]=s[p+2];o[p+3]=s[p+3]; continue; }
+    for(let k=0;k<3;k++){
+      const v=s[p+k]*c-a*(s[p-4+k]+s[p+4+k]+s[p-w*4+k]+s[p+w*4+k]);
+      o[p+k]=v<0?0:v>255?255:v;
+    }
+    o[p+3]=s[p+3];
+  }
+  ctx.putImageData(dst,0,0); return cv;
+}
+
+function addOutline(cv, width, color){
+  const r=Math.max(1,Math.round(width)), pad=r+2;
+  const w=cv.width+pad*2, h=cv.height+pad*2;
+  const mask=mkCanvas(cv.width,cv.height), mc=mask.getContext('2d');
+  mc.drawImage(cv,0,0); mc.globalCompositeOperation='source-in'; mc.fillStyle=color; mc.fillRect(0,0,mask.width,mask.height);
+  const out=mkCanvas(w,h), c=out.getContext('2d'), N=Math.max(24, Math.min(72, r*4));
+  for(let ring=r; ring>=1; ring-=Math.max(1,Math.floor(r/6))){
+    for(let i=0;i<N;i++){ const ang=i/N*Math.PI*2; c.drawImage(mask, pad+Math.cos(ang)*ring, pad+Math.sin(ang)*ring); }
+  }
+  c.drawImage(mask,pad,pad);
+  c.drawImage(cv,pad,pad);
+  return out;
+}
+
+async function pipeline(o, forExport){
+  const img=S.img, sw=img.naturalWidth, sh=img.naturalHeight;
+  // предпросмотр — уменьшенная копия; экспорт — фон убираем на ≤3200px, потом увеличиваем
+  const k = Math.min(1, (forExport ? 3200 : 900)/Math.max(sw,sh));
+  let cv=mkCanvas(sw*k, sh*k); const c=cv.getContext('2d'); c.imageSmoothingQuality='high'; c.drawImage(img,0,0,cv.width,cv.height);
+  if(o.bg){ removeBackground(cv,o.tol,o.soft,S.key); await tick(); }
+  if(o.crop) cv=cropToContent(cv, Math.max(2, Math.round(Math.max(cv.width,cv.height)*0.01)));
+  if(forExport){
+    cv=upscale(cv, o.scale/k);
+    await tick();
+  }
+  if(o.sharp) sharpen(cv, o.sharp + (forExport && o.scale>1 ? 1 : 0));
+  if(o.out){
+    // толщина обводки задана в долях от длинной стороны (как в предпросмотре 900 px)
+    cv=addOutline(cv, Math.max(1, o.outW/900*Math.max(cv.width,cv.height)), o.outC);
+  }
+  return cv;
+}
+
+let prevTimer=null, prevBusy=false, prevAgain=false;
+async function refreshPreview(){
+  if(!S.img) return;
+  if(prevBusy){ prevAgain=true; return; }
+  prevBusy=true;
+  do{
+    prevAgain=false;
+    try{
+      const cv=await pipeline(opts(), false);
+      S.preview=cv;
+      const view=$('view'); view.width=cv.width; view.height=cv.height;
+      view.getContext('2d').clearRect(0,0,cv.width,cv.height); view.getContext('2d').drawImage(cv,0,0);
+      view.classList.remove('hide'); $('empty').classList.add('hide');
+    }catch(e){ toast('Ошибка предпросмотра'); }
+  }while(prevAgain);
+  prevBusy=false;
+  updateResInfo();
+}
+function schedulePreview(){ clearTimeout(prevTimer); prevTimer=setTimeout(refreshPreview,180); }
+
+function estimateSize(){
+  if(!S.img||!S.preview) return null;
+  const p=S.preview, o=opts();
+  const sw=S.img.naturalWidth, sh=S.img.naturalHeight, k=Math.min(900/Math.max(sw,sh),1);
+  let w=p.width/k*o.scale, h=p.height/k*o.scale;
+  const f=Math.min(1, MAXSIDE/Math.max(w,h), Math.sqrt(MAXPIX/(w*h)));
+  return [Math.round(w*f), Math.round(h*f)];
+}
+function updateResInfo(){
+  const e=estimateSize(); if(!e) return;
+  $('resInfo').textContent='Итоговый размер ≈ '+e[0]+' × '+e[1]+' px (≈ '+(e[0]*e[1]/1e6).toFixed(1)+' Мп). Максимум — '+MAXSIDE+' px по длинной стороне.';
+}
+
+/* ================= Элементы управления ================= */
+function bindRange(id,vid,fn){ const el=$(id); el.oninput=()=>{ $(vid).textContent=el.value; if(fn)fn(); schedulePreview(); }; }
+bindRange('oTol','vTol'); bindRange('oSoft','vSoft'); bindRange('oOutW','vOutW'); bindRange('oSharp','vSharp');
+$('oQ').oninput=()=>$('vQ').textContent=$('oQ').value;
+$('oBg').onchange=()=>{ $('bgBox').classList.toggle('hide',!$('oBg').checked); schedulePreview(); };
+$('oCrop').onchange=schedulePreview;
+$('oOut').onchange=()=>{ $('outBox').classList.toggle('hide',!$('oOut').checked); schedulePreview(); };
+$('oOutC').oninput=schedulePreview;
+function seg(id,fn){ const box=$(id); box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); fn(b.dataset.v); }); }
+seg('scaleSeg',v=>{ S.scale=+v; updateResInfo(); });
+seg('fmtSeg',v=>{
+  S.fmt=v; $('jpgBox').classList.toggle('hide', v==='png');
+  $('fmtHint').textContent = v==='png' ? 'PNG сохраняет прозрачность. Файл попадёт в Галерею, в альбом Rin-klipart.'
+    : v==='jpeg' ? 'JPEG не поддерживает прозрачность — фон зальётся выбранным цветом. Файл попадёт в Галерею.'
+    : 'PDF сохранится в папку «Загрузки/Rin-klipart» (PDF не показывается в Галерее — это ограничение Android).';
+});
+$('btnPipette').onclick=()=>{
+  S.pipette=!S.pipette; $('btnPipette').classList.toggle('on',S.pipette);
+  if(S.pipette){ toast('Коснитесь фона на картинке'); }
+  if(S.pipette){ // показываем исходник без удаления фона
+    const view=$('view'), im=S.img, k=Math.min(1,900/Math.max(im.naturalWidth,im.naturalHeight));
+    view.width=Math.round(im.naturalWidth*k); view.height=Math.round(im.naturalHeight*k);
+    view.getContext('2d').drawImage(im,0,0,view.width,view.height);
+  } else refreshPreview();
+};
+$('view').addEventListener('click',e=>{
+  if(!S.pipette) return;
+  const cv=$('view'), r=cv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*cv.width), y=Math.floor((e.clientY-r.top)/r.height*cv.height);
+  const px=cv.getContext('2d').getImageData(Math.max(0,x),Math.max(0,y),1,1).data;
+  S.key=[px[0],px[1],px[2]]; S.pipette=false; $('btnPipette').classList.remove('on');
+  $('oBg').checked=true; $('bgBox').classList.remove('hide');
+  $('keyHint').textContent='Цвет фона выбран вручную: rgb('+px[0]+', '+px[1]+', '+px[2]+').';
+  refreshPreview();
+});
+
+/* ================= Сохранение ================= */
+function canvasToBlob(cv,type,q){ return new Promise(res=>cv.toBlob(res,type,q)); }
+
+function jpegWithBg(cv, color){
+  const o=mkCanvas(cv.width,cv.height), c=o.getContext('2d'); c.fillStyle=color; c.fillRect(0,0,o.width,o.height); c.drawImage(cv,0,0); return o;
+}
+async function makePdf(cv, color){
+  // JPEG внутри PDF на выбранном фоне; размер страницы = размер картинки при 300 dpi
+  const flat=jpegWithBg(cv,color), blob=await canvasToBlob(flat,'image/jpeg',0.95);
+  const jpg=new Uint8Array(await blob.arrayBuffer());
+  const pw=(cv.width*72/300), ph=(cv.height*72/300);
+  const enc=s=>new TextEncoder().encode(s);
+  const parts=[], offs=[]; let len=0;
+  const add=b=>{ const u=typeof b==='string'?enc(b):b; parts.push(u); len+=u.length; };
+  add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const obj=(n,body)=>{ offs[n]=len; add(n+' 0 obj\n'+body+'\nendobj\n'); };
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pw.toFixed(2)+' '+ph.toFixed(2)+'] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+  offs[4]=len; add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+cv.width+' /Height '+cv.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+' >>\nstream\n'); add(jpg); add('\nendstream\nendobj\n');
+  const content='q '+pw.toFixed(2)+' 0 0 '+ph.toFixed(2)+' 0 0 cm /Im0 Do Q';
+  obj(5,'<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream');
+  const xref=len; let x='xref\n0 6\n0000000000 65535 f \n';
+  for(let i=1;i<=5;i++) x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  add(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
+  const out=new Uint8Array(len); let p=0; parts.forEach(u=>{ out.set(u,p); p+=u.length; });
+  return new Blob([out],{type:'application/pdf'});
+}
+
+function toB64(u8){ let s=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH) s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); return btoa(s); }
+
+async function saveToDevice(blob,name,mime){
+  if(window.Android && Android.saveBegin){
+    let r=Android.saveBegin(name,mime);
+    if(r!=='ok') throw new Error(r==='error:permission' ? 'Нет разрешения на сохранение. Разрешите доступ к памяти в настройках телефона.' : 'Не удалось создать файл: '+r);
+    const u8=new Uint8Array(await blob.arrayBuffer()), STEP=3*256*1024; // кратно 3 для base64
+    for(let i=0;i<u8.length;i+=STEP){
+      r=Android.saveChunk(toB64(u8.subarray(i,i+STEP)));
+      if(r!=='ok'){ Android.saveAbort(); throw new Error('Ошибка записи: '+r); }
+      if(i%(STEP*4)===0) await tick();
+    }
+    r=Android.saveEnd(); if(r.indexOf('ok')!==0) throw new Error('Ошибка сохранения: '+r);
+    return r.slice(3);
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  return 'Загрузки';
+}
+const EXT={png:'png',jpeg:'jpg',pdf:'pdf'}, MIME={png:'image/png',jpeg:'image/jpeg',pdf:'application/pdf'};
+function fileName(base,fmt){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return 'Rin-klipart_'+base.replace(/\s+/g,'_')+'_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+'.'+EXT[fmt]; }
+
+async function makeBlob(cv,fmt,o){
+  if(fmt==='png') return canvasToBlob(cv,'image/png');
+  if(fmt==='jpeg') return canvasToBlob(jpegWithBg(cv,o.bgc),'image/jpeg',(+$('oQ').value)/100);
+  return makePdf(cv,o.bgc);
+}
+
+function thumbOf(cv){
+  const k=Math.min(1,360/Math.max(cv.width,cv.height)), t=mkCanvas(cv.width*k,cv.height*k), c=t.getContext('2d');
+  c.imageSmoothingQuality='high'; c.drawImage(cv,0,0,t.width,t.height); return t.toDataURL('image/png');
+}
+
+$('btnMake').onclick=async()=>{
+  if(!S.img) return;
+  busy(true,'Создаю клипарт высокого разрешения…'); await tick();
+  try{
+    const o=opts(), fmt=S.fmt;
+    const cv=await pipeline(o,true);
+    $('busyTxt').textContent='Сохраняю…'; await tick();
+    const blob=await makeBlob(cv,fmt,o);
+    if(!blob) throw new Error('Не удалось собрать файл (слишком большое изображение). Попробуйте меньший масштаб.');
+    const name=fileName(S.name,fmt);
+    const where=await saveToDevice(blob,name,MIME[fmt]);
+    const png = fmt==='png' ? blob : await canvasToBlob(cv.width*cv.height>16e6 ? (()=>{const k=Math.sqrt(16e6/(cv.width*cv.height)),t=mkCanvas(cv.width*k,cv.height*k);t.getContext('2d').drawImage(cv,0,0,t.width,t.height);return t;})() : cv,'image/png');
+    const rec={id:Date.now()+'-'+Math.random().toString(36).slice(2,7), name, base:S.name, fmt, w:cv.width, h:cv.height, size:blob.size, created:Date.now(), thumb:thumbOf(cv), preview:fmt==='png'?blob:png, file:blob};
+    await DB.put(rec);
+    showDone(rec,where);
+  }catch(err){ toast(err.message||'Ошибка'); }
+  busy(false);
+};
+
+function sizeTxt(b){ return b>1048576 ? (b/1048576).toFixed(1)+' МБ' : Math.max(1,Math.round(b/1024))+' КБ'; }
+function showDone(rec,where){
+  const st=$('dStage'); st.innerHTML=''; const im=new Image(); im.src=rec.thumb; st.appendChild(im);
+  $('dInfo').textContent=rec.fmt.toUpperCase()+' · '+rec.w+' × '+rec.h+' px · '+sizeTxt(rec.size)+'\nСохранено: '+where;
+  $('dInfo').style.whiteSpace='pre-line';
+  $('done').classList.add('show');
+}
+$('dOk').onclick=()=>$('done').classList.remove('show');
+
+/* ================= Все клипарты ================= */
+let current=null, urls=[];
+async function renderAll(){
+  urls.forEach(u=>URL.revokeObjectURL(u)); urls=[];
+  const list=await DB.all(), g=$('grid'); g.innerHTML='';
+  $('countPill').textContent=list.length+' '+plural(list.length,['клипарт','клипарта','клипартов']);
+  $('allEmpty').classList.toggle('hide',list.length>0);
+  list.forEach(r=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML='<div class="th"><img alt=""></div><div class="meta"><b>'+r.fmt.toUpperCase()+'</b><span>'+r.w+'×'+r.h+'</span></div>';
+    d.querySelector('img').src=r.thumb; d.onclick=()=>openClip(r); g.appendChild(d);
+  });
+}
+function plural(n,f){ const a=n%10,b=n%100; return a===1&&b!==11?f[0]:(a>=2&&a<=4&&(b<10||b>=20)?f[1]:f[2]); }
+function openClip(r){
+  current=r; const st=$('mStage'); st.innerHTML='';
+  const im=new Image(); const u=URL.createObjectURL(r.preview||r.file); urls.push(u); im.src=u; im.onerror=()=>{ im.src=r.thumb; }; st.appendChild(im);
+  $('mInfo').textContent=r.fmt.toUpperCase()+' · '+r.w+' × '+r.h+' px · '+sizeTxt(r.size)+' · '+new Date(r.created).toLocaleString('ru-RU');
+  $('modal').classList.add('show');
+}
+function closeModal(){ $('modal').classList.remove('show'); current=null; }
+$('mClose').onclick=closeModal;
+$('modal').onclick=e=>{ if(e.target.id==='modal') closeModal(); };
+$('mSave').onclick=async()=>{
+  if(!current) return; busy(true,'Сохраняю…'); await tick();
+  try{ const where=await saveToDevice(current.file,fileName(current.base||'clip',current.fmt),MIME[current.fmt]); toast('Сохранено: '+where); }
+  catch(e){ toast(e.message); }
+  busy(false);
+};
+$('mDel').onclick=async()=>{
+  if(!current) return;
+  if(!confirm('Удалить клипарт из списка приложения?\n(Файл в галерее останется.)')) return;
+  await DB.del(current.id); closeModal(); renderAll(); toast('Удалено из списка');
+};
+
+/* ================= Старт ================= */
+(async function init(){
+  buildThemes(); buildFonts();
+  const ti=parseInt(store.get('theme','0'),10); applyTheme(isNaN(ti)?0:ti);
+  const f=store.get('font', FONT_LIST[0]); applyFont(FONT_LIST.indexOf(f)>=0?f:FONT_LIST[0]);
+  await DB.open();
+})();
+</script>
+</body>
+</html>

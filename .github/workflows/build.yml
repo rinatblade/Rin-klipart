@@ -1,0 +1,48 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Скачать 50 русских шрифтов (google/fonts, SIL OFL)
+        run: |
+          pip install fonttools
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/google/fonts.git /tmp/gfonts
+          git -C /tmp/gfonts sparse-checkout set ofl
+          python3 scripts/fetch_fonts.py /tmp/gfonts/ofl app/src/main/assets/www/fonts
+          ls app/src/main/assets/www/fonts | head -70
+
+      - name: Собрать APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Опубликовать APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Rin-klipart.apk
+          TAG="build-${{ github.run_number }}"
+          gh release create "$TAG" Rin-klipart.apk --title "Rin-klipart $TAG" --notes "Установите Rin-klipart.apk на телефон Android."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rin-klipart-apk
+          path: Rin-klipart.apk

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- картинка (рамка) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,24 H62 A4,4 0 0 1 66,28 V54 A4,4 0 0 1 62,58 H30 A4,4 0 0 1 26,54 V28 A4,4 0 0 1 30,24 Z" />
+    <!-- горы -->
+    <path
+        android:fillColor="#7C4DFF"
+        android:pathData="M29,54 L40,38 L48,48 L53,42 L63,54 Z" />
+    <!-- солнце -->
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M55,33 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+
+    <!-- ножницы: тёмный контур -->
+    <path
+        android:pathData="M42,70 L82,66"
+        android:strokeColor="#2A1066"
+        android:strokeLineCap="round"
+        android:strokeWidth="7" />
+    <path
+        android:pathData="M47.8,82.2 L80,50"
+        android:strokeColor="#2A1066"
+        android:strokeLineCap="round"
+        android:strokeWidth="7" />
+    <path
+        android:pathData="M33.5,70.4 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0"
+        android:strokeColor="#2A1066"
+        android:strokeWidth="6" />
+    <path
+        android:pathData="M40.5,85 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0"
+        android:strokeColor="#2A1066"
+        android:strokeWidth="6" />
+
+    <!-- ножницы: белая заливка -->
+    <path
+        android:pathData="M42,70 L82,66"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+    <path
+        android:pathData="M47.8,82.2 L80,50"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+    <path
+        android:pathData="M33.5,70.4 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.8" />
+    <path
+        android:pathData="M40.5,85 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.8" />
+    <!-- шарнир -->
+    <path
+        android:fillColor="#FF5FA2"
+        android:pathData="M62,68 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0" />
+</vector>
