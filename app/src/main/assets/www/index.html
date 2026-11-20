@@ -120,6 +120,10 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
         <button class="btn" id="btnPick">Загрузить картинку</button>
         <button class="btn sec" id="btnPipette" disabled>Пипетка фона</button>
       </div>
+      <div class="row hide" id="pipRow" style="margin-top:10px">
+        <button class="btn sec" id="btnPipUndo">Отменить последний</button>
+        <button class="btn sec" id="btnPipReset">Сбросить пипетку</button>
+      </div>
       <div class="hint" id="info"></div>
       <input type="file" id="file" accept="image/*" class="hide">
     </div>
@@ -132,7 +136,7 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
         <input type="range" id="oTol" min="5" max="120" value="40">
         <label class="opt"><span>Сглаживание края</span><span class="v" id="vSoft">1</span></label>
         <input type="range" id="oSoft" min="0" max="4" value="1">
-        <div class="hint" id="keyHint">Цвет фона определяется по краям картинки. Если фон убрался не полностью — нажмите «Пипетка фона» и коснитесь фона на картинке.</div>
+        <div class="hint" id="keyHint">Цвет фона определяется по краям картинки. Если остались кусочки фона — нажмите «Пипетка фона» и коснитесь этих остатков прямо на картинке: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.</div>
       </div>
       <label class="opt"><span>Обрезать пустые края</span><span class="sw"><input type="checkbox" id="oCrop" checked><i></i></span></label>
       <label class="opt"><span>Белая обводка (стикер)</span><span class="sw"><input type="checkbox" id="oOut"><i></i></span></label>
@@ -357,7 +361,7 @@ const DB = (function(){
 })();
 
 /* ================= Состояние ================= */
-const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, key:null, preview:null };
+const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null };
 
 /* ================= Загрузка картинки ================= */
 $('btnPick').onclick = () => $('file').click();
@@ -367,7 +371,7 @@ $('file').onchange = async e => {
   try{
     const url = URL.createObjectURL(f);
     const img = await new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>bad(new Error('Не удалось открыть изображение')); i.src=url; });
-    S.img = img; S.key = null; S.pipette = false; $('btnPipette').classList.remove('on');
+    S.img = img; S.keys = []; S.pipette = false; $('btnPipette').classList.remove('on'); updatePipUi();
     S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
     $('btnMake').disabled = false; $('btnPipette').disabled = false;
     $('info').textContent = 'Исходник: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px';
@@ -386,7 +390,7 @@ function opts(){
 }
 function mkCanvas(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w)); c.height=Math.max(1,Math.round(h)); return c; }
 
-function removeBackground(cv, tol, soft, key){
+function removeBackground(cv, tol, soft, key, keys){
   const w=cv.width, h=cv.height, ctx=cv.getContext('2d');
   const id=ctx.getImageData(0,0,w,h), d=id.data;
   if(!key){
@@ -394,19 +398,28 @@ function removeBackground(cv, tol, soft, key){
     const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1],[0,h>>1],[w-1,h>>1]];
     let r=0,g=0,b=0,n=0;
     pts.forEach(p=>{ const i=(p[1]*w+p[0])*4; if(d[i+3]>10){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; } });
-    if(n===0) return;
-    key=[r/n,g/n,b/n];
+    key = n===0 ? null : [r/n,g/n,b/n];
   }
   const lim = tol*tol;
-  const dist = i => { const dr=d[i]-key[0], dg=d[i+1]-key[1], db=d[i+2]-key[2]; return (dr*dr+dg*dg+db*db)/3; };
+  const dist = (i,k) => { const dr=d[i]-k[0], dg=d[i+1]-k[1], db=d[i+2]-k[2]; return (dr*dr+dg*dg+db*db)/3; };
   const seen = new Uint8Array(w*h);
-  const q = new Int32Array(w*h); let qh=0, qt=0;
-  const push = p => { if(!seen[p]){ const i=p*4; if(d[i+3]<8 || dist(i)<=lim){ seen[p]=1; q[qt++]=p; } } };
-  for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); }
-  for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
-  while(qh<qt){
-    const p=q[qh++], x=p%w, y=(p-x)/w;
-    if(x>0) push(p-1); if(x<w-1) push(p+1); if(y>0) push(p-w); if(y<h-1) push(p+w);
+  if(key){
+    const q = new Int32Array(w*h); let qh=0, qt=0;
+    const push = p => { if(!seen[p]){ const i=p*4; if(d[i+3]<8 || dist(i,key)<=lim){ seen[p]=1; q[qt++]=p; } } };
+    for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); }
+    for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+    while(qh<qt){
+      const p=q[qh++], x=p%w, y=(p-x)/w;
+      if(x>0) push(p-1); if(x<w-1) push(p+1); if(y>0) push(p-w); if(y<h-1) push(p+w);
+    }
+  }
+  // цвета, выбранные пипеткой: убираем по всей картинке (в том числе «острова» внутри рисунка)
+  if(keys && keys.length){
+    for(let p=0;p<w*h;p++){
+      if(seen[p]) continue;
+      const i=p*4; if(d[i+3]<8) continue;
+      for(let j=0;j<keys.length;j++){ if(dist(i,keys[j])<=lim){ seen[p]=1; break; } }
+    }
   }
   for(let p=0;p<w*h;p++) if(seen[p]) d[p*4+3]=0;
   // сглаживание края: размытие альфа-канала
@@ -480,14 +493,14 @@ async function pipeline(o, forExport){
   // предпросмотр — уменьшенная копия; экспорт — фон убираем на ≤3200px, потом увеличиваем
   const k = Math.min(1, (forExport ? 3200 : 900)/Math.max(sw,sh));
   let cv=mkCanvas(sw*k, sh*k); const c=cv.getContext('2d'); c.imageSmoothingQuality='high'; c.drawImage(img,0,0,cv.width,cv.height);
-  if(o.bg){ removeBackground(cv,o.tol,o.soft,S.key); await tick(); }
+  if(o.bg){ removeBackground(cv,o.tol,o.soft,null,S.keys); await tick(); }
   if(o.crop) cv=cropToContent(cv, Math.max(2, Math.round(Math.max(cv.width,cv.height)*0.01)));
   if(forExport){
     cv=upscale(cv, o.scale/k);
     await tick();
   }
-  if(o.sharp) sharpen(cv, o.sharp + (forExport && o.scale>1 ? 1 : 0));
-  if(o.out){
+  if(o.sharp && !(S.pipette && !forExport)) sharpen(cv, o.sharp + (forExport && o.scale>1 ? 1 : 0));
+  if(o.out && !(S.pipette && !forExport)){
     // толщина обводки задана в долях от длинной стороны (как в предпросмотре 900 px)
     cv=addOutline(cv, Math.max(1, o.outW/900*Math.max(cv.width,cv.height)), o.outC);
   }
@@ -543,24 +556,35 @@ seg('fmtSeg',v=>{
     : v==='jpeg' ? 'JPEG не поддерживает прозрачность — фон зальётся выбранным цветом. Файл попадёт в Галерею.'
     : 'PDF сохранится в папку «Загрузки/Rin-klipart» (PDF не показывается в Галерее — это ограничение Android).';
 });
+function updatePipUi(){
+  $('btnPipette').textContent = S.pipette ? 'Готово' : 'Пипетка фона';
+  $('btnPipette').classList.toggle('on', S.pipette);
+  $('pipRow').classList.toggle('hide', !S.keys.length && !S.pipette);
+  $('view').style.cursor = S.pipette ? 'crosshair' : '';
+  $('keyHint').textContent = S.keys.length
+    ? 'Стёрто цветов пипеткой: '+S.keys.length+'. '+(S.pipette?'Коснитесь ещё остатков фона или нажмите «Готово».':'')
+    : 'Цвет фона определяется по краям картинки. Если остались кусочки фона — нажмите «Пипетка фона» и коснитесь этих остатков прямо на картинке: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.';
+}
 $('btnPipette').onclick=()=>{
-  S.pipette=!S.pipette; $('btnPipette').classList.toggle('on',S.pipette);
-  if(S.pipette){ toast('Коснитесь фона на картинке'); }
-  if(S.pipette){ // показываем исходник без удаления фона
-    const view=$('view'), im=S.img, k=Math.min(1,900/Math.max(im.naturalWidth,im.naturalHeight));
-    view.width=Math.round(im.naturalWidth*k); view.height=Math.round(im.naturalHeight*k);
-    view.getContext('2d').drawImage(im,0,0,view.width,view.height);
-  } else refreshPreview();
+  S.pipette=!S.pipette;
+  if(S.pipette){ $('oBg').checked=true; $('bgBox').classList.remove('hide'); toast('Коснитесь остатков фона на картинке'); }
+  updatePipUi(); refreshPreview();
 };
+$('btnPipUndo').onclick=()=>{ S.keys.pop(); updatePipUi(); refreshPreview(); };
+$('btnPipReset').onclick=()=>{ S.keys=[]; updatePipUi(); refreshPreview(); };
 $('view').addEventListener('click',e=>{
   if(!S.pipette) return;
   const cv=$('view'), r=cv.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)/r.width*cv.width), y=Math.floor((e.clientY-r.top)/r.height*cv.height);
-  const px=cv.getContext('2d').getImageData(Math.max(0,x),Math.max(0,y),1,1).data;
-  S.key=[px[0],px[1],px[2]]; S.pipette=false; $('btnPipette').classList.remove('on');
-  $('oBg').checked=true; $('bgBox').classList.remove('hide');
-  $('keyHint').textContent='Цвет фона выбран вручную: rgb('+px[0]+', '+px[1]+', '+px[2]+').';
-  refreshPreview();
+  const x=Math.min(cv.width-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*cv.width)));
+  const y=Math.min(cv.height-1,Math.max(0,Math.floor((e.clientY-r.top)/r.height*cv.height)));
+  // усредняем 5×5 вокруг касания, чтобы не промахнуться по шуму; прозрачные пиксели не учитываем
+  const x0=Math.max(0,x-2), y0=Math.max(0,y-2), w=Math.min(cv.width,x+3)-x0, h=Math.min(cv.height,y+3)-y0;
+  const d=cv.getContext('2d').getImageData(x0,y0,w,h).data;
+  let R=0,G=0,B=0,n=0;
+  for(let i=0;i<d.length;i+=4){ if(d[i+3]>40){ R+=d[i]; G+=d[i+1]; B+=d[i+2]; n++; } }
+  if(!n){ toast('Здесь уже прозрачно — коснитесь остатка фона'); return; }
+  S.keys.push([R/n,G/n,B/n]);
+  updatePipUi(); refreshPreview();
 });
 
 /* ================= Сохранение ================= */
