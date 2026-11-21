@@ -31,6 +31,17 @@ jobs:
           python3 scripts/fetch_fonts.py /tmp/gfonts/ofl app/src/main/assets/www/fonts
           ls app/src/main/assets/www/fonts | head -70
 
+      - name: Скачать модель ИИ для вырезания фона (RMBG-1.4) и проверить её
+        run: |
+          mkdir -p app/src/main/assets/models
+          M=app/src/main/assets/models/rmbg.onnx
+          curl -fL --retry 3 -o "$M" https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model_quantized.onnx \
+            || curl -fL --retry 3 -o "$M" https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model.onnx
+          ls -l "$M"
+          test "$(stat -c%s "$M")" -gt 20000000
+          pip install onnxruntime numpy
+          python3 scripts/check_model.py "$M"
+
       - name: Собрать APK
         run: gradle --no-daemon :app:assembleDebug
 

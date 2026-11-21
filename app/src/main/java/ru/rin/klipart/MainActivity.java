@@ -22,7 +22,17 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtSession;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.util.Collections;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
@@ -112,6 +122,58 @@ public class MainActivity extends Activity {
                         finish();
                     }
                 });
+    }
+
+    // ---------- ИИ: вырезание объекта (RMBG-1.4, ONNX Runtime) ----------
+    private static final int AI_N = 1024;
+    private static final String AI_MODEL = "models/rmbg.onnx";
+    private OrtEnvironment aiEnv;
+    private OrtSession aiSession;
+
+    private synchronized void aiEnsure() throws Exception {
+        if (aiSession != null) return;
+        ByteArrayOutputStream bo = new ByteArrayOutputStream(50 * 1024 * 1024);
+        try (InputStream in = getAssets().open(AI_MODEL)) {
+            byte[] buf = new byte[1 << 16];
+            int n;
+            while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
+        }
+        aiEnv = OrtEnvironment.getEnvironment();
+        OrtSession.SessionOptions o = new OrtSession.SessionOptions();
+        o.setIntraOpNumThreads(Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors())));
+        aiSession = aiEnv.createSession(bo.toByteArray(), o);
+    }
+
+    /** rgb: AI_N*AI_N*3 байт. Возвращает маску AI_N*AI_N байт (0..255). */
+    private synchronized byte[] aiRun(byte[] rgb) throws Exception {
+        aiEnsure();
+        final int px = AI_N * AI_N;
+        if (rgb.length != px * 3) throw new Exception("bad input size " + rgb.length);
+        FloatBuffer fb = ByteBuffer.allocateDirect(4 * 3 * px).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        for (int c = 0; c < 3; c++) {
+            for (int i = 0; i < px; i++) {
+                fb.put(c * px + i, (rgb[i * 3 + c] & 0xFF) / 255f - 0.5f);
+            }
+        }
+        fb.rewind();
+        String name = aiSession.getInputNames().iterator().next();
+        try (OnnxTensor t = OnnxTensor.createTensor(aiEnv, fb, new long[]{1, 3, AI_N, AI_N});
+             OrtSession.Result r = aiSession.run(Collections.singletonMap(name, t))) {
+            OnnxTensor out = (OnnxTensor) r.get(0);
+            FloatBuffer ob = out.getFloatBuffer();
+            if (ob.remaining() < px) throw new Exception("bad output size " + ob.remaining());
+            float mn = Float.MAX_VALUE, mx = -Float.MAX_VALUE;
+            float[] v = new float[px];
+            ob.get(v, 0, px);
+            for (int i = 0; i < px; i++) { if (v[i] < mn) mn = v[i]; if (v[i] > mx) mx = v[i]; }
+            float d = mx - mn; if (d < 1e-6f) d = 1f;
+            byte[] m = new byte[px];
+            for (int i = 0; i < px; i++) {
+                int a = Math.round((v[i] - mn) / d * 255f);
+                m[i] = (byte) (a < 0 ? 0 : (a > 255 ? 255 : a));
+            }
+            return m;
+        }
     }
 
     @Override
@@ -221,6 +283,40 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public synchronized void saveAbort() {
             abortSave();
+        }
+
+        @JavascriptInterface
+        public boolean aiAvailable() {
+            try {
+                getAssets().open(AI_MODEL).close();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void aiSegment(final String id, final String b64) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String res;
+                    try {
+                        byte[] mask = aiRun(Base64.decode(b64, Base64.DEFAULT));
+                        res = "ok:" + Base64.encodeToString(mask, Base64.NO_WRAP);
+                    } catch (Throwable e) {
+                        res = "error:" + e;
+                    }
+                    final String js = "window.__aiDone('" + id.replaceAll("[^A-Za-z0-9_]", "") + "','"
+                            + res.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ") + "')";
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript(js, null);
+                        }
+                    });
+                }
+            }).start();
         }
 
         @JavascriptInterface

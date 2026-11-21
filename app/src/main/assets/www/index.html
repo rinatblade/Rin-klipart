@@ -149,8 +149,17 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
 
     <div class="card">
       <h3>Обработка</h3>
-      <label class="opt"><span>Убрать фон</span><span class="sw"><input type="checkbox" id="oBg" checked><i></i></span></label>
-      <div id="bgBox">
+      <label class="opt"><span>ИИ-вырезание объекта</span><span class="sw"><input type="checkbox" id="oAi" checked><i></i></span></label>
+      <div id="aiBox">
+        <label class="opt"><span>Чёткость края</span><span class="v" id="vAiC">70</span></label>
+        <input type="range" id="oAiC" min="0" max="100" value="70">
+        <label class="opt"><span>Захват объекта</span><span class="v" id="vAiS">0</span></label>
+        <input type="range" id="oAiS" min="-30" max="30" value="0">
+        <div class="hint">Нейросеть сама находит главный объект и вырезает его, фон убирается полностью. «Захват» — положительные значения захватывают больше (тонкие детали, волосы), отрицательные — срезают лишнее по краю. Остатки можно дочистить пипеткой или ластиком.</div>
+      </div>
+      <div class="hint hide" id="aiNo">ИИ-вырезание доступно только в установленном приложении. Используется запасной способ — по цвету фона.</div>
+      <label class="opt"><span>Убрать фон по цвету (запасной способ)</span><span class="sw"><input type="checkbox" id="oBg"><i></i></span></label>
+      <div id="bgBox" class="hide">
         <label class="opt"><span>Чувствительность</span><span class="v" id="vTol">40</span></label>
         <input type="range" id="oTol" min="5" max="120" value="40">
         <label class="opt"><span>Сглаживание края</span><span class="v" id="vSoft">1</span></label>
@@ -437,6 +446,44 @@ const DB = (function(){
 /* ================= Состояние ================= */
 const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null };
 
+/* ================= ИИ-вырезание ================= */
+const AI = { ok:false, pending:new Map(), n:0 };
+try{ AI.ok = !!(window.Android && Android.aiAvailable && Android.aiAvailable()); }catch(e){}
+window.__aiDone = (id,res) => { const p=AI.pending.get(id); if(p){ AI.pending.delete(id); p(res); } };
+function aiSegment(b64){ return new Promise(res=>{ const id='a'+(++AI.n); AI.pending.set(id,res); Android.aiSegment(id,b64); }); }
+async function runAi(){
+  S.aiMask=null;
+  if(!AI.ok || !$('oAi').checked || !S.img) return;
+  busy(true,'ИИ вырезает объект… (в первый раз дольше)'); await tick();
+  try{
+    const N=1024, c=mkCanvas(N,N), x=c.getContext('2d'); x.imageSmoothingQuality='high';
+    x.fillStyle='#fff'; x.fillRect(0,0,N,N); x.drawImage(S.img,0,0,N,N);
+    const px=x.getImageData(0,0,N,N).data, rgb=new Uint8Array(N*N*3);
+    for(let i=0,j=0;i<N*N*4;i+=4){ rgb[j++]=px[i]; rgb[j++]=px[i+1]; rgb[j++]=px[i+2]; }
+    const res=await aiSegment(toB64(rgb));
+    if(res.indexOf('ok:')!==0) throw new Error(res.slice(0,160));
+    const bin=atob(res.slice(3)), m=new Uint8ClampedArray(N*N*4);
+    for(let i=0;i<N*N;i++){ m[i*4]=255; m[i*4+1]=255; m[i*4+2]=255; m[i*4+3]=bin.charCodeAt(i); }
+    const mc=mkCanvas(N,N); mc.getContext('2d').putImageData(new ImageData(m,N,N),0,0); S.aiMask=mc;
+  }catch(e){
+    toast('ИИ не сработал: '+e.message+'. Включён запасной способ.');
+    $('oAi').checked=false; $('aiBox').classList.add('hide'); $('oBg').checked=true; $('bgBox').classList.remove('hide');
+  }
+  busy(false);
+}
+function applyAiMask(cv,o){
+  const w=cv.width, h=cv.height, t=mkCanvas(w,h), tc=t.getContext('2d');
+  tc.imageSmoothingQuality='high'; tc.drawImage(S.aiMask,0,0,w,h);
+  const m=tc.getImageData(0,0,w,h).data, ctx=cv.getContext('2d'), id=ctx.getImageData(0,0,w,h), d=id.data;
+  // кривая чёткости: чем выше «чёткость», тем резче переход между фоном и объектом
+  const half=0.5-0.46*(o.aiCrisp/100), mid=0.5-o.aiShift/100, lo=mid-half, hi=mid+half;
+  for(let i=0;i<w*h;i++){
+    let a=(m[i*4+3]/255-lo)/(hi-lo); a=a<0?0:a>1?1:a; a=a*a*(3-2*a);
+    d[i*4+3]=Math.round(d[i*4+3]*a);
+  }
+  ctx.putImageData(id,0,0);
+}
+
 /* ================= Загрузка картинки ================= */
 $('btnPick').onclick = () => $('file').click();
 $('file').onchange = async e => {
@@ -448,6 +495,7 @@ $('file').onchange = async e => {
     S.img = img; S.keys = []; S.pipette = false; $('btnPipette').classList.remove('on'); updatePipUi();
     S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
     $('btnMake').disabled = false; $('btnEdit').disabled = false; $('btnPipette').disabled = false;
+    busy(false); await runAi();
     $('info').textContent = 'Исходник: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px';
     await refreshPreview();
   }catch(err){ toast(err.message); }
@@ -457,6 +505,7 @@ $('file').onchange = async e => {
 /* ================= Обработка ================= */
 function opts(){
   return {
+    ai: $('oAi').checked && AI.ok, aiCrisp: +$('oAiC').value, aiShift: +$('oAiS').value,
     bg: $('oBg').checked, tol: +$('oTol').value, soft: +$('oSoft').value,
     crop: $('oCrop').checked, out: $('oOut').checked, outW: +$('oOutW').value, outC: $('oOutC').value,
     sharp: +$('oSharp').value, scale: S.scale, bgc: $('oBgC').value
@@ -467,7 +516,7 @@ function mkCanvas(w,h){ const c=document.createElement('canvas'); c.width=Math.m
 function removeBackground(cv, tol, soft, key, keys){
   const w=cv.width, h=cv.height, ctx=cv.getContext('2d');
   const id=ctx.getImageData(0,0,w,h), d=id.data;
-  if(!key){
+  if(key===null){
     // ключ по среднему цвету рамки в 4 углах и серединах сторон
     const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1],[0,h>>1],[w-1,h>>1]];
     let r=0,g=0,b=0,n=0;
@@ -567,7 +616,10 @@ async function pipeline(o, forExport){
   // предпросмотр — уменьшенная копия; экспорт — фон убираем на ≤3200px, потом увеличиваем
   const k = Math.min(1, (forExport ? 3200 : 900)/Math.max(sw,sh));
   let cv=mkCanvas(sw*k, sh*k); const c=cv.getContext('2d'); c.imageSmoothingQuality='high'; c.drawImage(img,0,0,cv.width,cv.height);
-  if(o.bg){ removeBackground(cv,o.tol,o.soft,null,S.keys); await tick(); }
+  if(o.ai && S.aiMask) applyAiMask(cv,o);
+  if(o.bg) removeBackground(cv,o.tol,o.soft,null,S.keys);
+  else if(S.keys.length) removeBackground(cv,o.tol,o.soft,false,S.keys);
+  await tick();
   if(o.crop) cv=cropToContent(cv, Math.max(2, Math.round(Math.max(cv.width,cv.height)*0.01)));
   if(forExport){
     cv=upscale(cv, o.scale/k);
@@ -616,10 +668,11 @@ function updateResInfo(){
 
 /* ================= Элементы управления ================= */
 function bindRange(id,vid,fn){ const el=$(id); el.oninput=()=>{ $(vid).textContent=el.value; if(fn)fn(); schedulePreview(); }; }
-bindRange('oTol','vTol'); bindRange('oSoft','vSoft'); bindRange('oOutW','vOutW'); bindRange('oSharp','vSharp');
+bindRange('oAiC','vAiC'); bindRange('oAiS','vAiS'); bindRange('oTol','vTol'); bindRange('oSoft','vSoft'); bindRange('oOutW','vOutW'); bindRange('oSharp','vSharp');
 $('oQ').oninput=()=>$('vQ').textContent=$('oQ').value;
 $('oBg').onchange=()=>{ $('bgBox').classList.toggle('hide',!$('oBg').checked); schedulePreview(); };
 $('oCrop').onchange=schedulePreview;
+$('oAi').onchange=async()=>{ $('aiBox').classList.toggle('hide',!$('oAi').checked); if($('oAi').checked && S.img && !S.aiMask) await runAi(); schedulePreview(); };
 $('oOut').onchange=()=>{ $('outBox').classList.toggle('hide',!$('oOut').checked); schedulePreview(); };
 $('oOutC').oninput=schedulePreview;
 function seg(id,fn){ const box=$(id); box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); fn(b.dataset.v); }); }
@@ -641,7 +694,7 @@ function updatePipUi(){
 }
 $('btnPipette').onclick=()=>{
   S.pipette=!S.pipette;
-  if(S.pipette){ $('oBg').checked=true; $('bgBox').classList.remove('hide'); toast('Коснитесь остатков фона на картинке'); }
+  if(S.pipette){ toast('Коснитесь остатков фона на картинке'); }
   updatePipUi(); refreshPreview();
 };
 $('btnPipUndo').onclick=()=>{ S.keys.pop(); updatePipUi(); refreshPreview(); };
@@ -1069,6 +1122,7 @@ $('mEdit').onclick=async()=>{
   const ti=parseInt(store.get('theme','0'),10); applyTheme(isNaN(ti)?0:ti);
   const f=store.get('font', FONT_LIST[0]); applyFont(FONT_LIST.indexOf(f)>=0?f:FONT_LIST[0]);
   await DB.open();
+  if(!AI.ok){ $('oAi').checked=false; $('oAi').disabled=true; $('aiBox').classList.add('hide'); $('aiNo').classList.remove('hide'); $('oBg').checked=true; $('bgBox').classList.remove('hide'); }
 })();
 </script>
 </body>
