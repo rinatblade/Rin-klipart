@@ -118,6 +118,8 @@ body.anim .card{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .zoombtns button{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:19px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22)}
 .brushCur{position:absolute;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1.5px #000;pointer-events:none;z-index:2}
 .seg.tools button{font-size:13px;padding:10px 2px}
+.loupe{position:absolute;width:130px;height:130px;border-radius:20px;border:3px solid var(--acc);box-shadow:0 6px 22px rgba(0,0,0,.5);pointer-events:none;z-index:6;background:#fff}
+.zoombtns button:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -148,7 +150,8 @@ body.anim .card{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
           <div>Загрузите изображение,<br>чтобы сделать из него клипарт</div>
         </div>
         <canvas id="view" class="hide"></canvas>
-        <div class="zoombtns"><button id="zIn">+</button><button id="zOut">−</button><button id="zFit">⤢</button></div>
+        <canvas id="loupe" class="loupe hide"></canvas>
+        <div class="zoombtns"><button id="hUndo" disabled>↶</button><button id="hRedo" disabled>↷</button><button id="zIn">+</button><button id="zOut">−</button><button id="zFit">⤢</button></div>
         <div class="brushCur hide" id="brushCur"></div>
       </div>
       <div class="seg tools" id="toolSeg" style="margin-top:12px">
@@ -166,7 +169,7 @@ body.anim .card{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
         <div class="hint" id="toolHint"></div>
       </div>
       <div class="row hide" id="pipRow" style="margin-top:10px">
-        <button class="btn sec" id="btnPipUndo">Отменить последний</button>
+        <button class="btn sec" id="btnPipUndo">Отменить действие</button>
         <button class="btn sec" id="btnPipReset">Сбросить пипетку</button>
       </div>
       <div style="margin-top:12px"><button class="btn" id="btnPick">Загрузить картинку</button></div>
@@ -293,6 +296,7 @@ body.anim .card{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   </div>
   <div class="ed-stage" id="edStage">
     <canvas id="edCv"></canvas>
+    <canvas id="edLoupe" class="loupe hide"></canvas>
     <div class="ed-zoom"><button id="edZin">+</button><button id="edZout">−</button><button id="edFit">⤢</button></div>
   </div>
   <div class="ed-panel">
@@ -486,7 +490,7 @@ const DB = (function(){
 })();
 
 /* ================= Состояние ================= */
-const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null, tool:'move', strokes:[], z:1, tx:0, ty:0, cssW:0, vW:0, vH:0, lastK:1, eAuto:null, eSrc:null, ov:null };
+const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null, tool:'move', strokes:[], hist:[], redo:[], z:1, tx:0, ty:0, cssW:0, vW:0, vH:0, lastK:1, eAuto:null, eSrc:null, ov:null };
 
 /* ================= ИИ-вырезание ================= */
 const AI = { ok:false, pending:new Map(), n:0 };
@@ -534,7 +538,7 @@ $('file').onchange = async e => {
   try{
     const url = URL.createObjectURL(f);
     const img = await new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>bad(new Error('Не удалось открыть изображение')); i.src=url; });
-    S.img = img; S.keys = []; S.strokes = []; S.vW = 0; S.eAuto = null; S.ov = null; setTool('move', true); updatePipUi(); updateStUndo();
+    S.img = img; S.keys = []; S.strokes = []; S.hist = []; S.redo = []; S.vW = 0; S.eAuto = null; S.ov = null; setTool('move', true); updatePipUi(); updateStUndo();
     S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
     $('btnMake').disabled = false; $('btnEdit').disabled = false;
     busy(false); await runAi();
@@ -775,8 +779,6 @@ function updatePipUi(){
     ? 'Стёрто цветов пипеткой: '+S.keys.length+'. '+(S.pipette?'Коснитесь ещё остатков фона.':'')
     : 'Цвет фона определяется по краям картинки. Если остались кусочки фона — выберите под картинкой инструмент «Пипетка» и коснитесь этих остатков: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.';
 }
-$('btnPipUndo').onclick=()=>{ S.keys.pop(); updatePipUi(); refreshPreview(); };
-$('btnPipReset').onclick=()=>{ S.keys=[]; updatePipUi(); refreshPreview(); };
 
 /* --- вид: перемещение и увеличение двумя пальцами --- */
 const stage=$('stage'), view=$('view'), PZ={ptrs:new Map(), g:null, brush:36, soft:0.3};
@@ -796,6 +798,39 @@ $('zOut').onclick=()=>zoomAt(1/1.5,stage.clientWidth/2,stage.clientHeight/2);
 $('zFit').onclick=fitView;
 window.addEventListener('resize',()=>{ if(S.vW) fitView(); });
 
+/* --- лупа: окошко в стороне от пальца, показывает место обработки --- */
+const LS=130;
+function loupeM(brush){ return Math.min(6,Math.max(1.5,LS*0.3/(brush/2))); }
+function drawLoupe(el, src, cx, cy, regionPx, circleR){
+  const dpr=Math.min(2,window.devicePixelRatio||1), N=Math.round(LS*dpr);
+  if(el.width!==N){ el.width=N; el.height=N; el.style.width=el.style.height=LS+'px'; }
+  const c=el.getContext('2d'); c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,N,N);
+  const q=Math.max(4,Math.round(8*dpr));
+  for(let y=0;y<N;y+=q) for(let x=0;x<N;x+=q){ c.fillStyle=((x/q+y/q)&1)?'#d6d3e6':'#f6f5fb'; c.fillRect(x,y,q,q); }
+  c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
+  c.drawImage(src,cx-regionPx/2,cy-regionPx/2,regionPx,regionPx,0,0,N,N);
+  const m=N/2;
+  if(circleR>0){ c.lineWidth=2*dpr; c.strokeStyle='#fff'; c.beginPath(); c.arc(m,m,circleR*dpr,0,7); c.stroke();
+    c.lineWidth=1*dpr; c.strokeStyle='#000'; c.beginPath(); c.arc(m,m,circleR*dpr+1.5*dpr,0,7); c.stroke(); }
+  c.fillStyle='#ff2e63'; c.beginPath(); c.arc(m,m,2*dpr,0,7); c.fill();
+}
+function placeLoupe(el, sw, sh, pt, rad){
+  const cand=[[8,8],[8,sh-LS-8],[sw-LS-56,8],[sw-LS-8,sh-LS-8]];
+  let best=null, bd=-1;
+  for(const [l,t] of cand){
+    const dx=Math.max(l-pt[0],0,pt[0]-(l+LS)), dy=Math.max(t-pt[1],0,pt[1]-(t+LS)), d=Math.hypot(dx,dy);
+    if(d>rad+16){ best=[l,t]; break; } if(d>bd){ bd=d; best=[l,t]; }
+  }
+  el.style.left=best[0]+'px'; el.style.top=best[1]+'px'; el.classList.remove('hide');
+}
+function updateLoupe(pt){
+  if(!S.vW) return;
+  const m=loupeM(PZ.brush), cs=S.cssW/S.vW, p=toPix(pt), el=$('loupe');
+  drawLoupe(el, view, p[0], p[1], (LS/m)/(cs*S.z), PZ.brush/2*m);
+  placeLoupe(el, stage.clientWidth, stage.clientHeight, pt, PZ.brush/2);
+}
+function hideLoupe(){ $('loupe').classList.add('hide'); }
+
 /* --- инструменты --- */
 function setTool(t,noRefresh){
   if(t!=='move' && !S.img){ toast('Сначала загрузите картинку'); return; }
@@ -807,25 +842,46 @@ function setTool(t,noRefresh){
     ? 'Проведите пальцем по остаткам фона — они сотрутся. Двумя пальцами можно увеличивать и двигать картинку, чтобы стирать точнее.'
     : 'Проведите по месту, которое нужно вернуть: вернётся исходное изображение, даже если ИИ или фон его вырезали.';
   stage.style.cursor = (paint||t==='pipette') ? 'crosshair' : '';
-  $('brushCur').classList.add('hide'); updatePipUi(); updateStUndo();
+  $('brushCur').classList.add('hide'); hideLoupe(); updatePipUi(); updateStUndo();
   const isEd=t!=='move';
   if(!noRefresh && (wasEd!==isEd || (isEd && !S.eAuto))) refreshPreview();
 }
 $('toolSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
 $('oBr').oninput=()=>{ PZ.brush=+$('oBr').value; $('vBr').textContent=PZ.brush; };
 $('oBrS').oninput=()=>{ PZ.soft=+$('oBrS').value/100; $('vBrS').textContent=$('oBrS').value; };
-function updateStUndo(){ $('btnStUndo').disabled=!S.strokes.length; $('btnStReset').disabled=!S.strokes.length; }
+function updateStUndo(){
+  $('hUndo').disabled=!S.hist.length; $('hRedo').disabled=!S.redo.length;
+  $('btnStUndo').disabled=!S.hist.length; $('btnStReset').disabled=!S.strokes.length;
+}
 function redrawManual(){
   if(!S.eAuto||!S.ov) return;
   S.ov=overrideCanvas(S.vW,S.vH,S.strokes);
   composeRegion(view.getContext('2d'),S.eAuto,S.eSrc,S.ov,0,0,S.vW,S.vH);
 }
-$('btnStUndo').onclick=()=>{ if(S.strokes.length){ S.strokes.pop(); redrawManual(); updateStUndo(); } };
-$('btnStReset').onclick=()=>{ if(S.strokes.length && confirm('Сбросить все правки ластиком и «Вернуть»?')){ S.strokes=[]; redrawManual(); updateStUndo(); } };
+function afterHist(e){
+  updateStUndo(); updatePipUi();
+  if(e.t==='stroke' && S.tool!=='move' && S.eAuto && S.ov) redrawManual(); else refreshPreview();
+}
+function undoAct(){
+  const e=S.hist.pop(); if(!e) return; S.redo.push(e);
+  if(e.t==='stroke') S.strokes.pop(); else S.keys.pop();
+  afterHist(e);
+}
+function redoAct(){
+  const e=S.redo.pop(); if(!e) return; S.hist.push(e);
+  if(e.t==='stroke') S.strokes.push(e.v); else S.keys.push(e.v);
+  afterHist(e);
+}
+function pushAct(e){ S.hist.push(e); S.redo=[]; updateStUndo(); }
+$('hUndo').onclick=undoAct; $('btnStUndo').onclick=undoAct; $('btnPipUndo').onclick=undoAct;
+$('hRedo').onclick=redoAct;
+$('btnStReset').onclick=()=>{ if(S.strokes.length && confirm('Сбросить все правки ластиком и «Вернуть»?')){
+  S.strokes=[]; S.hist=S.hist.filter(e=>e.t!=='stroke'); S.redo=S.redo.filter(e=>e.t!=='stroke'); redrawManual(); updateStUndo(); } };
+$('btnPipReset').onclick=()=>{ S.keys=[]; S.hist=S.hist.filter(e=>e.t!=='key'); S.redo=S.redo.filter(e=>e.t!=='key'); updateStUndo(); updatePipUi(); refreshPreview(); };
 
 const stPt = e => { const r=stage.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
 const toPix = pt => { const cs=S.cssW/S.vW; return [((pt[0]-S.tx)/S.z)/cs, ((pt[1]-S.ty)/S.z)/cs]; };
-function showCursor(pt){ const c=$('brushCur'), d=PZ.brush; c.style.width=c.style.height=d+'px'; c.style.left=(pt[0]-d/2)+'px'; c.style.top=(pt[1]-d/2)+'px'; c.classList.remove('hide'); }
+function showCursor(pt){ const c=$('brushCur'), d=PZ.brush; c.style.width=c.style.height=d+'px'; c.style.left=(pt[0]-d/2)+'px'; c.style.top=(pt[1]-d/2)+'px'; c.classList.remove('hide'); updateLoupe(pt); }
 function paintSeg(stroke,seg){
   const W=S.vW,H=S.vH; paintOv(S.ov.getContext('2d'),W,H,seg,stroke.r,stroke.h,stroke.m);
   const rr=Math.max(0.6,stroke.r*Math.max(W,H))+3; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
@@ -837,21 +893,21 @@ function beginStroke(pt){
   if(!S.eAuto||!S.ov){ toast('Подождите, картинка обрабатывается…'); PZ.g={type:'ignore'}; return; }
   const p=toPix(pt), cs=S.cssW/S.vW, rPix=PZ.brush/2/(cs*S.z), M=Math.max(S.vW,S.vH);
   const stroke={pts:[[p[0]/S.vW,p[1]/S.vH]], r:rPix/M, h:1-PZ.soft, m:S.tool};
-  PZ.g={type:'paint',stroke}; showCursor(pt); paintSeg(stroke,stroke.pts);
+  PZ.g={type:'paint',stroke}; paintSeg(stroke,stroke.pts); showCursor(pt);
 }
 function extendStroke(pt){
   const g=PZ.g, p=toPix(pt), n=[p[0]/S.vW,p[1]/S.vH], last=g.stroke.pts[g.stroke.pts.length-1];
   if(Math.hypot((n[0]-last[0])*S.vW,(n[1]-last[1])*S.vH)<0.4) return;
   g.stroke.pts.push(n); paintSeg(g.stroke,[last,n]);
 }
-function endStroke(){ const g=PZ.g; if(g&&g.type==='paint'){ S.strokes.push(g.stroke); updateStUndo(); } }
+function endStroke(){ const g=PZ.g; if(g&&g.type==='paint'){ S.strokes.push(g.stroke); pushAct({t:'stroke',v:g.stroke}); } }
 function pipetteAt(pt){
   const p=toPix(pt), x=Math.min(S.vW-1,Math.max(0,Math.floor(p[0]))), y=Math.min(S.vH-1,Math.max(0,Math.floor(p[1])));
   const x0=Math.max(0,x-2), y0=Math.max(0,y-2), w=Math.min(S.vW,x+3)-x0, h=Math.min(S.vH,y+3)-y0;
   const d=view.getContext('2d').getImageData(x0,y0,w,h).data; let R=0,G=0,B=0,n=0;
   for(let i=0;i<d.length;i+=4){ if(d[i+3]>40){ R+=d[i]; G+=d[i+1]; B+=d[i+2]; n++; } }
   if(!n){ toast('Здесь уже прозрачно — коснитесь остатка фона'); return; }
-  S.keys.push([R/n,G/n,B/n]); updatePipUi(); refreshPreview();
+  const key=[R/n,G/n,B/n]; S.keys.push(key); pushAct({t:'key',v:key}); updatePipUi(); refreshPreview();
 }
 const dist2s=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 stage.addEventListener('pointerdown',e=>{
@@ -863,7 +919,7 @@ stage.addEventListener('pointerdown',e=>{
     if(S.tool==='erase'||S.tool==='restore') beginStroke(pt);
     else PZ.g={type:S.tool==='pipette'?'tap':'pan',start:pt,tx:S.tx,ty:S.ty,moved:false};
   } else if(pts.length===2){
-    endStroke(); $('brushCur').classList.add('hide');
+    endStroke(); $('brushCur').classList.add('hide'); hideLoupe();
     const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
     PZ.g={type:'pinch',d0:dist2s(pts[0],pts[1]),z0:S.z,c0:[(mid[0]-S.tx)/S.z,(mid[1]-S.ty)/S.z]};
   } else PZ.g={type:'ignore'};
@@ -877,7 +933,7 @@ stage.addEventListener('pointermove',e=>{
     if(g.type==='pan'||g.type==='tap'){
       const dx=pt[0]-g.start[0], dy=pt[1]-g.start[1]; if(Math.hypot(dx,dy)>6) g.moved=true;
       if(g.moved){ S.tx=g.tx+dx; S.ty=g.ty+dy; applyView(); }
-    } else if(g.type==='paint'){ showCursor(pt); extendStroke(pt); }
+    } else if(g.type==='paint'){ extendStroke(pt); showCursor(pt); }
   } else if(pts.length===2 && g.type==='pinch'){
     const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2], nz=Math.min(Math.max(g.z0*dist2s(pts[0],pts[1])/g.d0,0.5),30);
     S.z=nz; S.tx=mid[0]-g.c0[0]*nz; S.ty=mid[1]-g.c0[1]*nz; applyView();
@@ -888,7 +944,7 @@ function stEnd(e){
   const g=PZ.g; PZ.ptrs.delete(e.pointerId);
   if(PZ.ptrs.size===0){
     if(g&&g.type==='paint') endStroke(); else if(g&&g.type==='tap'&&!g.moved) pipetteAt(g.start);
-    PZ.g=null; $('brushCur').classList.add('hide');
+    PZ.g=null; $('brushCur').classList.add('hide'); hideLoupe();
   } else if(PZ.ptrs.size===1) PZ.g={type:'ignore'};
 }
 stage.addEventListener('pointerup',stEnd); stage.addEventListener('pointercancel',stEnd);
@@ -1166,7 +1222,7 @@ EC.cv.addEventListener('pointerdown',e=>{
     else { const c=s2c(mid[0],mid[1]); ED.g={type:'vpinch',d0:d,c0:c,z0:ED.vz}; }
     ED.hover=null;
   } else { ED.g={type:'ignore'}; }
-  edRender();
+  edRender(); edLoupe();
 });
 EC.cv.addEventListener('pointermove',e=>{
   if(!ED.open||!ED.ptrs.has(e.pointerId)) { if(ED.open && ED.tool==='erase' && e.pointerType==='mouse'){ ED.hover=ptOf(e); edRender(); } return; }
@@ -1186,14 +1242,14 @@ EC.cv.addEventListener('pointermove',e=>{
       ED.vz=nz; ED.vx=mid[0]-g.c0[0]*nz; ED.vy=mid[1]-g.c0[1]*nz;
     }
   }
-  edRender();
+  edRender(); edLoupe();
 });
 function ptrEnd(e){
   if(!ED.ptrs.has(e.pointerId)) return;
   ED.ptrs.delete(e.pointerId);
   if(ED.ptrs.size===0){ commitStroke(); ED.g=null; ED.hover=null; edSync(); }
   else if(ED.ptrs.size===1){ ED.g={type:'ignore'}; }
-  edUpdUndo(); edRender();
+  edUpdUndo(); edRender(); edLoupe();
 }
 EC.cv.addEventListener('pointerup',ptrEnd); EC.cv.addEventListener('pointercancel',ptrEnd);
 
@@ -1208,6 +1264,13 @@ function edSync(sliderOnly){
   const box=$('edChips'); box.innerHTML='';
   ED.layers.forEach((l,i)=>{ const b=document.createElement('button'); b.textContent=l.name; b.className=i===ED.sel?'on':''; b.onclick=()=>{ ED.sel=i; edSync(); edRender(); }; box.appendChild(b); });
   edUpdUndo();
+}
+function edLoupe(){
+  const el=$('edLoupe');
+  if(!ED.open||ED.tool!=='erase'||!ED.hover||!ED.g||ED.g.type!=='erase'){ el.classList.add('hide'); return; }
+  const m=loupeM(ED.brush), d=ED.dpr;
+  drawLoupe(el, EC.cv, ED.hover[0]*d, ED.hover[1]*d, (LS/m)*d, 0);
+  placeLoupe(el, ED.sw, ED.sh, ED.hover, ED.brush/2);
 }
 function edUpdUndo(){ $('edUndo').disabled = !ED.hist.some(L=>ED.layers.indexOf(L)>=0 && L.strokes.length); }
 $('edTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
