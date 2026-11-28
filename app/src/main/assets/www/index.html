@@ -104,6 +104,20 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
 .ed-chips button.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on-acc);border-color:transparent}
 .ed-row{display:flex;gap:8px;margin-top:8px}
 .ed-row .btn{padding:11px 6px;font-size:13px;box-shadow:none}
+
+@keyframes gmove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+header{background:var(--hdr,linear-gradient(135deg,var(--acc),var(--acc2)))}
+body.anim{background:var(--bg-grad);background-size:340% 340%;animation:gmove 18s ease infinite}
+body.anim header{background-size:260% 260%;animation:gmove 9s ease infinite}
+body.anim .card{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.theme .sq.an{background-size:300% 300%;animation:gmove 5s ease infinite}
+.stage.pz{height:min(58vh,520px);min-height:260px;touch-action:none;display:block}
+.stage.pz .empty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%)}
+#view{position:absolute;left:0;top:0;max-width:none!important;max-height:none!important;transform-origin:0 0;touch-action:none;image-rendering:auto}
+.zoombtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:3}
+.zoombtns button{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:19px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22)}
+.brushCur{position:absolute;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1.5px #000;pointer-events:none;z-index:2}
+.seg.tools button{font-size:13px;padding:10px 2px}
 </style>
 </head>
 <body>
@@ -128,21 +142,34 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
   <!-- СОЗДАТЬ -->
   <section id="p-create">
     <div class="card">
-      <div class="stage" id="stage">
+      <div class="stage pz" id="stage">
         <div class="empty" id="empty">
           <svg viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="40" rx="6"/><path d="M12 46l14-16 10 11 7-7 9 12"/><circle cx="42" cy="24" r="4"/></svg>
           <div>Загрузите изображение,<br>чтобы сделать из него клипарт</div>
         </div>
         <canvas id="view" class="hide"></canvas>
+        <div class="zoombtns"><button id="zIn">+</button><button id="zOut">−</button><button id="zFit">⤢</button></div>
+        <div class="brushCur hide" id="brushCur"></div>
       </div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn" id="btnPick">Загрузить картинку</button>
-        <button class="btn sec" id="btnPipette" disabled>Пипетка фона</button>
+      <div class="seg tools" id="toolSeg" style="margin-top:12px">
+        <button data-t="move" class="on">Двигать</button><button data-t="erase">Ластик</button><button data-t="restore">Вернуть</button><button data-t="pipette">Пипетка</button>
+      </div>
+      <div id="toolOpts" class="hide" style="margin-top:8px">
+        <label class="opt"><span>Размер кисти</span><span class="v" id="vBr">36</span></label>
+        <input type="range" id="oBr" min="8" max="140" value="36">
+        <label class="opt"><span>Мягкость края</span><span class="v" id="vBrS">30</span></label>
+        <input type="range" id="oBrS" min="0" max="100" value="30">
+        <div class="row" style="margin-top:8px">
+          <button class="btn sec" id="btnStUndo" disabled>Отменить</button>
+          <button class="btn sec" id="btnStReset" disabled>Сбросить правки</button>
+        </div>
+        <div class="hint" id="toolHint"></div>
       </div>
       <div class="row hide" id="pipRow" style="margin-top:10px">
         <button class="btn sec" id="btnPipUndo">Отменить последний</button>
         <button class="btn sec" id="btnPipReset">Сбросить пипетку</button>
       </div>
+      <div style="margin-top:12px"><button class="btn" id="btnPick">Загрузить картинку</button></div>
       <div class="hint" id="info"></div>
       <input type="file" id="file" accept="image/*" class="hide">
     </div>
@@ -164,7 +191,7 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
         <input type="range" id="oTol" min="5" max="120" value="40">
         <label class="opt"><span>Сглаживание края</span><span class="v" id="vSoft">1</span></label>
         <input type="range" id="oSoft" min="0" max="4" value="1">
-        <div class="hint" id="keyHint">Цвет фона определяется по краям картинки. Если остались кусочки фона — нажмите «Пипетка фона» и коснитесь этих остатков прямо на картинке: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.</div>
+        <div class="hint" id="keyHint">Цвет фона определяется по краям картинки. Если остались кусочки фона — выберите под картинкой инструмент «Пипетка» и коснитесь этих остатков: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз. Для точной правки есть «Ластик» и «Вернуть».</div>
       </div>
       <label class="opt"><span>Обрезать пустые края</span><span class="sw"><input type="checkbox" id="oCrop" checked><i></i></span></label>
       <label class="opt"><span>Белая обводка (стикер)</span><span class="sw"><input type="checkbox" id="oOut"><i></i></span></label>
@@ -272,12 +299,13 @@ input[type=color]{width:42px;height:34px;border:1px solid var(--line);border-rad
     <div class="seg" id="edTabs"><button data-t="erase" class="on">Ластик</button><button data-t="layers">Клипарты</button></div>
     <div class="ed-chips" id="edChips"></div>
     <div id="edErase">
+      <div class="seg" id="edMode" style="margin-top:6px"><button data-m="erase" class="on">Стирать</button><button data-m="restore">Восстановить</button></div>
       <label class="opt"><span>Размер ластика</span><span class="v" id="vEdBr">36</span></label>
       <input type="range" id="edBr" min="8" max="140" value="36">
       <label class="opt"><span>Мягкость края</span><span class="v" id="vEdSoft">30</span></label>
       <input type="range" id="edSoft" min="0" max="100" value="30">
-      <div class="ed-row"><button class="btn sec" id="edUndo">Отменить стирание</button></div>
-      <div class="hint">Двумя пальцами можно увеличивать, уменьшать и двигать картинку, чтобы стирать точнее. Размер ластика на экране не меняется при увеличении — значит, в приближении он стирает тоньше. Стирается тот слой, который выбран выше.</div>
+      <div class="ed-row"><button class="btn sec" id="edUndo">Отменить последнее</button></div>
+      <div class="hint">Двумя пальцами можно увеличивать, уменьшать и двигать картинку, чтобы стирать точнее. Размер ластика на экране не меняется при увеличении — значит, в приближении он стирает тоньше. «Восстановить» возвращает то, что вы стёрли в этом редакторе. Правки работают на том слое, который выбран выше.</div>
     </div>
     <div id="edLayers" class="hide">
       <div class="ed-row"><button class="btn" id="edAdd">＋ Добавить клипарт</button></div>
@@ -323,7 +351,7 @@ function busy(on, txt){ $('busy').classList.toggle('show', !!on); if(txt) $('bus
 const tick = () => new Promise(r => setTimeout(r, 30));
 const MAXSIDE = 8192, MAXPIX = 48e6;
 
-/* ================= Темы (20) ================= */
+/* ================= Темы (20 + 5 анимированных) ================= */
 const THEMES = [
  {n:'Лавандовый сон', bg:'#f4f0ff',card:'#ffffff',text:'#241a45',muted:'#7a6fa0',acc:'#6c3ff5',acc2:'#ff5fa2',line:'#e4dcff'},
  {n:'Розовый зефир',  bg:'#fff0f6',card:'#ffffff',text:'#4a1830',muted:'#a0617f',acc:'#ff4d8d',acc2:'#ffa14d',line:'#ffd9e8'},
@@ -344,11 +372,25 @@ const THEMES = [
  {n:'Фуксия',         bg:'#fbeeff',card:'#ffffff',text:'#34104a',muted:'#9a6bb3',acc:'#c026d3',acc2:'#6366f1',line:'#f0d4fa'},
  {n:'Мандарин',       bg:'#fff1e6',card:'#ffffff',text:'#4a1f00',muted:'#b0713f',acc:'#ff6b00',acc2:'#ffc400',line:'#ffd9b8'},
  {n:'Северное сияние',bg:'#0b1a26',card:'#12293a',text:'#e6faff',muted:'#7eb4c9',acc:'#2ee6c0',acc2:'#7a8cff',line:'#1f3f55',dark:1},
- {n:'Бумага',         bg:'#f7f7f5',card:'#ffffff',text:'#222222',muted:'#7d7d78',acc:'#333333',acc2:'#e0556b',line:'#e5e5e0'}
+ {n:'Бумага',         bg:'#f7f7f5',card:'#ffffff',text:'#222222',muted:'#7d7d78',acc:'#333333',acc2:'#e0556b',line:'#e5e5e0'},
+ // --- анимированные тёмные темы с переливающимся градиентом ---
+ {n:'Аврора',        anim:1,dark:1,bg:'#04121f',card:'rgba(10,32,48,.78)',bg2:'#0a2030',text:'#e6faff',muted:'#8fc3d4',acc:'#2ee6c0',acc2:'#8a7bff',line:'rgba(255,255,255,.15)',
+   grad:'linear-gradient(125deg,#04121f,#0b3a4a,#1b1450,#06283a,#0a4a45,#04121f)',hdr:'linear-gradient(120deg,#0e7c86,#4b3fd1,#16a085,#0e7c86)'},
+ {n:'Космос',        anim:1,dark:1,bg:'#07041a',card:'rgba(24,12,56,.78)',bg2:'#170b38',text:'#f1eaff',muted:'#a89bd4',acc:'#9d6bff',acc2:'#ff5fd2',line:'rgba(255,255,255,.15)',
+   grad:'linear-gradient(125deg,#07041a,#1a0b45,#3a0f5e,#0d0630,#241060,#07041a)',hdr:'linear-gradient(120deg,#5b2bd6,#c026a8,#3a1fa0,#5b2bd6)'},
+ {n:'Лава',          anim:1,dark:1,bg:'#1a0505',card:'rgba(52,14,10,.78)',bg2:'#340e0a',text:'#fff0ea',muted:'#d9998a',acc:'#ff6a2e',acc2:'#ff2e63',line:'rgba(255,255,255,.15)',
+   grad:'linear-gradient(125deg,#1a0505,#4a0f0a,#7a2205,#2a0a1a,#5a1408,#1a0505)',hdr:'linear-gradient(120deg,#d9380f,#ff7a1a,#b3123e,#d9380f)'},
+ {n:'Матрица',       anim:1,dark:1,bg:'#010a05',card:'rgba(4,36,20,.78)',bg2:'#042414',text:'#e0ffee',muted:'#7fc9a0',acc:'#19ff8c',acc2:'#00c2ff',line:'rgba(255,255,255,.15)',
+   grad:'linear-gradient(125deg,#010a05,#04301a,#0a4a2a,#02160b,#06402a,#010a05)',hdr:'linear-gradient(120deg,#08a35a,#0891b2,#0b7a3e,#08a35a)'},
+ {n:'Ночной закат',  anim:1,dark:1,bg:'#0b0f2e',card:'rgba(40,18,62,.78)',bg2:'#281242',text:'#fff1f6',muted:'#d4a0c0',acc:'#ff7a59',acc2:'#ff3d9a',line:'rgba(255,255,255,.15)',
+   grad:'linear-gradient(125deg,#0b0f2e,#3a1450,#7a1f5a,#1a1244,#5a1a52,#0b0f2e)',hdr:'linear-gradient(120deg,#e0502f,#c0287a,#5b2bd6,#e0502f)'}
 ];
 function applyTheme(i){
   const t = THEMES[i] || THEMES[0], s = document.documentElement.style;
-  s.setProperty('--bg',t.bg); s.setProperty('--bg2',t.card); s.setProperty('--card',t.card);
+  s.setProperty('--bg',t.bg); s.setProperty('--bg2',t.bg2||t.card); s.setProperty('--card',t.card);
+  s.setProperty('--hdr', t.hdr || 'linear-gradient(135deg,'+t.acc+','+t.acc2+')');
+  s.setProperty('--bg-grad', t.grad || t.bg);
+  document.body.classList.toggle('anim', !!t.anim);
   s.setProperty('--text',t.text); s.setProperty('--muted',t.muted);
   s.setProperty('--acc',t.acc); s.setProperty('--acc2',t.acc2); s.setProperty('--line',t.line);
   s.setProperty('--on-acc', '#ffffff');
@@ -362,7 +404,7 @@ function buildThemes(){
   const box = $('themes');
   THEMES.forEach((t,i)=>{
     const b = document.createElement('button'); b.className='theme';
-    b.innerHTML = '<div class="sq" style="background:linear-gradient(135deg,'+t.acc+','+t.acc2+')"></div>'+t.n;
+    b.innerHTML = '<div class="sq'+(t.anim?' an':'')+'" style="background:'+(t.anim?t.hdr:'linear-gradient(135deg,'+t.acc+','+t.acc2+')')+'"></div>'+t.n;
     b.onclick = () => { store.set('theme', i); applyTheme(i); };
     box.appendChild(b);
   });
@@ -444,7 +486,7 @@ const DB = (function(){
 })();
 
 /* ================= Состояние ================= */
-const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null };
+const S = { img:null, name:'clipart', scale:2, fmt:'png', pipette:false, keys:[], preview:null, tool:'move', strokes:[], z:1, tx:0, ty:0, cssW:0, vW:0, vH:0, lastK:1, eAuto:null, eSrc:null, ov:null };
 
 /* ================= ИИ-вырезание ================= */
 const AI = { ok:false, pending:new Map(), n:0 };
@@ -492,9 +534,9 @@ $('file').onchange = async e => {
   try{
     const url = URL.createObjectURL(f);
     const img = await new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>bad(new Error('Не удалось открыть изображение')); i.src=url; });
-    S.img = img; S.keys = []; S.pipette = false; $('btnPipette').classList.remove('on'); updatePipUi();
+    S.img = img; S.keys = []; S.strokes = []; S.vW = 0; S.eAuto = null; S.ov = null; setTool('move', true); updatePipUi(); updateStUndo();
     S.name = (f.name||'clipart').replace(/\.[^.]+$/,'').replace(/[^\wа-яА-ЯёЁ\- ]/g,'').trim().slice(0,30) || 'clipart';
-    $('btnMake').disabled = false; $('btnEdit').disabled = false; $('btnPipette').disabled = false;
+    $('btnMake').disabled = false; $('btnEdit').disabled = false;
     busy(false); await runAi();
     $('info').textContent = 'Исходник: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px';
     await refreshPreview();
@@ -611,22 +653,61 @@ function addOutline(cv, width, color){
   return out;
 }
 
+/* --- ручные правки (ластик/«Вернуть»): хранятся в долях исходной картинки и применяются в любом разрешении --- */
+function ovStamp(ctx,x,y,rr,hd,mode){
+  const col = mode==='restore' ? '255,255,255' : '0,0,0';
+  if(hd>=0.98){ ctx.fillStyle='rgb('+col+')'; ctx.beginPath(); ctx.arc(x,y,rr,0,7); ctx.fill(); return; }
+  const g=ctx.createRadialGradient(x,y,rr*hd,x,y,rr); g.addColorStop(0,'rgba('+col+',1)'); g.addColorStop(1,'rgba('+col+',0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,rr,0,7); ctx.fill();
+}
+function paintOv(ctx,W,H,pts,r,hd,mode){
+  const M=Math.max(W,H), rr=Math.max(0.6,r*M), step=Math.max(0.6,rr*0.2);
+  for(let i=0;i<pts.length;i++){
+    const x=pts[i][0]*W, y=pts[i][1]*H;
+    if(i===0){ ovStamp(ctx,x,y,rr,hd,mode); continue; }
+    const px=pts[i-1][0]*W, py=pts[i-1][1]*H, dx=x-px, dy=y-py, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/step));
+    for(let j=1;j<=n;j++) ovStamp(ctx,px+dx*j/n,py+dy*j/n,rr,hd,mode);
+  }
+}
+function overrideCanvas(w,h,strokes){ const c=mkCanvas(w,h), x=c.getContext('2d'); strokes.forEach(st=>paintOv(x,w,h,st.pts,st.r,st.h,st.m)); return c; }
+// итог: прозрачность = авто*(1-покрытие) + исходная*покрытие*(1 для «Вернуть», 0 для ластика); цвет всегда из исходника
+function composeRegion(dctx, auto, src, ov, x, y, w, h){
+  if(w<=0||h<=0) return;
+  const ad=auto.getContext('2d').getImageData(x,y,w,h).data, sd=src.getContext('2d').getImageData(x,y,w,h).data, od=ov.getContext('2d').getImageData(x,y,w,h).data;
+  const out=dctx.createImageData(w,h), d=out.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=sd[i]; d[i+1]=sd[i+1]; d[i+2]=sd[i+2];
+    const oa=od[i+3]/255;
+    d[i+3] = oa===0 ? ad[i+3] : Math.round(ad[i+3]*(1-oa) + sd[i+3]*oa*(od[i]/255));
+  }
+  dctx.putImageData(out,x,y);
+}
+function applyManual(cv,src,strokes){
+  const ov=overrideCanvas(cv.width,cv.height,strokes);
+  composeRegion(cv.getContext('2d'),cv,src,ov,0,0,cv.width,cv.height);
+}
+
 async function pipeline(o, forExport){
+  const ed = !forExport && S.tool!=='move';           // режим правки: без обрезки, обводки и резкости
   const img=S.img, sw=img.naturalWidth, sh=img.naturalHeight;
   // предпросмотр — уменьшенная копия; экспорт — фон убираем на ≤3200px, потом увеличиваем
-  const k = Math.min(1, (forExport ? 3200 : 900)/Math.max(sw,sh));
+  const k = Math.min(1, (forExport ? 3200 : (ed ? 1400 : 900))/Math.max(sw,sh));
+  if(!forExport) S.lastK=k;
   let cv=mkCanvas(sw*k, sh*k); const c=cv.getContext('2d'); c.imageSmoothingQuality='high'; c.drawImage(img,0,0,cv.width,cv.height);
+  const src = (S.strokes.length || ed) ? cloneCv(cv) : null;
   if(o.ai && S.aiMask) applyAiMask(cv,o);
   if(o.bg) removeBackground(cv,o.tol,o.soft,null,S.keys);
   else if(S.keys.length) removeBackground(cv,o.tol,o.soft,false,S.keys);
   await tick();
-  if(o.crop) cv=cropToContent(cv, Math.max(2, Math.round(Math.max(cv.width,cv.height)*0.01)));
+  if(ed){ S.eAuto=cloneCv(cv); S.eSrc=src; }
+  if(S.strokes.length) applyManual(cv,src,S.strokes);
+  if(o.crop && !ed) cv=cropToContent(cv, Math.max(2, Math.round(Math.max(cv.width,cv.height)*0.01)));
   if(forExport){
     cv=upscale(cv, o.scale/k);
     await tick();
   }
-  if(o.sharp && !(S.pipette && !forExport)) sharpen(cv, o.sharp + (forExport && o.scale>1 ? 1 : 0));
-  if(o.out && !(S.pipette && !forExport)){
+  if(o.sharp && !ed) sharpen(cv, o.sharp + (forExport && o.scale>1 ? 1 : 0));
+  if(o.out && !ed){
     // толщина обводки задана в долях от длинной стороны (как в предпросмотре 900 px)
     cv=addOutline(cv, Math.max(1, o.outW/900*Math.max(cv.width,cv.height)), o.outC);
   }
@@ -643,9 +724,14 @@ async function refreshPreview(){
     try{
       const cv=await pipeline(opts(), false);
       S.preview=cv;
-      const view=$('view'); view.width=cv.width; view.height=cv.height;
-      view.getContext('2d').clearRect(0,0,cv.width,cv.height); view.getContext('2d').drawImage(cv,0,0);
+      const view=$('view'), nw=cv.width, nh=cv.height;
+      const aspectChanged = !S.vW || Math.abs(nw/nh - S.vW/S.vH) > 0.004*(nw/nh);
+      view.width=nw; view.height=nh;
+      view.getContext('2d').clearRect(0,0,nw,nh); view.getContext('2d').drawImage(cv,0,0);
+      S.vW=nw; S.vH=nh;
       view.classList.remove('hide'); $('empty').classList.add('hide');
+      if(aspectChanged) fitView(); else applyCssSize();
+      if(S.tool!=='move' && S.eAuto) S.ov=overrideCanvas(nw,nh,S.strokes);
     }catch(e){ toast('Ошибка предпросмотра'); }
   }while(prevAgain);
   prevBusy=false;
@@ -656,7 +742,7 @@ function schedulePreview(){ clearTimeout(prevTimer); prevTimer=setTimeout(refres
 function estimateSize(){
   if(!S.img||!S.preview) return null;
   const p=S.preview, o=opts();
-  const sw=S.img.naturalWidth, sh=S.img.naturalHeight, k=Math.min(900/Math.max(sw,sh),1);
+  const k=S.lastK||1;
   let w=p.width/k*o.scale, h=p.height/k*o.scale;
   const f=Math.min(1, MAXSIDE/Math.max(w,h), Math.sqrt(MAXPIX/(w*h)));
   return [Math.round(w*f), Math.round(h*f)];
@@ -684,35 +770,128 @@ seg('fmtSeg',v=>{
     : 'PDF сохранится в папку «Загрузки/Rin-klipart» (PDF не показывается в Галерее — это ограничение Android).';
 });
 function updatePipUi(){
-  $('btnPipette').textContent = S.pipette ? 'Готово' : 'Пипетка фона';
-  $('btnPipette').classList.toggle('on', S.pipette);
   $('pipRow').classList.toggle('hide', !S.keys.length && !S.pipette);
-  $('view').style.cursor = S.pipette ? 'crosshair' : '';
   $('keyHint').textContent = S.keys.length
-    ? 'Стёрто цветов пипеткой: '+S.keys.length+'. '+(S.pipette?'Коснитесь ещё остатков фона или нажмите «Готово».':'')
-    : 'Цвет фона определяется по краям картинки. Если остались кусочки фона — нажмите «Пипетка фона» и коснитесь этих остатков прямо на картинке: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.';
+    ? 'Стёрто цветов пипеткой: '+S.keys.length+'. '+(S.pipette?'Коснитесь ещё остатков фона.':'')
+    : 'Цвет фона определяется по краям картинки. Если остались кусочки фона — выберите под картинкой инструмент «Пипетка» и коснитесь этих остатков: такой цвет сотрётся по всей картинке. Можно коснуться несколько раз.';
 }
-$('btnPipette').onclick=()=>{
-  S.pipette=!S.pipette;
-  if(S.pipette){ toast('Коснитесь остатков фона на картинке'); }
-  updatePipUi(); refreshPreview();
-};
 $('btnPipUndo').onclick=()=>{ S.keys.pop(); updatePipUi(); refreshPreview(); };
 $('btnPipReset').onclick=()=>{ S.keys=[]; updatePipUi(); refreshPreview(); };
-$('view').addEventListener('click',e=>{
-  if(!S.pipette) return;
-  const cv=$('view'), r=cv.getBoundingClientRect();
-  const x=Math.min(cv.width-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*cv.width)));
-  const y=Math.min(cv.height-1,Math.max(0,Math.floor((e.clientY-r.top)/r.height*cv.height)));
-  // усредняем 5×5 вокруг касания, чтобы не промахнуться по шуму; прозрачные пиксели не учитываем
-  const x0=Math.max(0,x-2), y0=Math.max(0,y-2), w=Math.min(cv.width,x+3)-x0, h=Math.min(cv.height,y+3)-y0;
-  const d=cv.getContext('2d').getImageData(x0,y0,w,h).data;
-  let R=0,G=0,B=0,n=0;
+
+/* --- вид: перемещение и увеличение двумя пальцами --- */
+const stage=$('stage'), view=$('view'), PZ={ptrs:new Map(), g:null, brush:36, soft:0.3};
+function applyView(){ view.style.transform='translate('+S.tx+'px,'+S.ty+'px) scale('+S.z+')'; }
+function applyCssSize(){ view.style.width=S.cssW+'px'; view.style.height=(S.cssW*S.vH/S.vW)+'px'; applyView(); }
+function fitView(){
+  const sw=stage.clientWidth, sh=stage.clientHeight; if(!S.vW||!sw) return;
+  const base=Math.min(sw/S.vW, sh/S.vH)*0.96; S.cssW=S.vW*base; S.z=1;
+  S.tx=(sw-S.cssW)/2; S.ty=(sh-S.cssW*S.vH/S.vW)/2; applyCssSize();
+}
+function zoomAt(f,cx,cy){
+  const nz=Math.min(Math.max(S.z*f,0.5),30), c=[(cx-S.tx)/S.z,(cy-S.ty)/S.z];
+  S.z=nz; S.tx=cx-c[0]*nz; S.ty=cy-c[1]*nz; applyView();
+}
+$('zIn').onclick=()=>zoomAt(1.5,stage.clientWidth/2,stage.clientHeight/2);
+$('zOut').onclick=()=>zoomAt(1/1.5,stage.clientWidth/2,stage.clientHeight/2);
+$('zFit').onclick=fitView;
+window.addEventListener('resize',()=>{ if(S.vW) fitView(); });
+
+/* --- инструменты --- */
+function setTool(t,noRefresh){
+  if(t!=='move' && !S.img){ toast('Сначала загрузите картинку'); return; }
+  const wasEd=S.tool!=='move'; S.tool=t; S.pipette=(t==='pipette');
+  $('toolSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  const paint=(t==='erase'||t==='restore');
+  $('toolOpts').classList.toggle('hide',!paint);
+  $('toolHint').textContent = t==='erase'
+    ? 'Проведите пальцем по остаткам фона — они сотрутся. Двумя пальцами можно увеличивать и двигать картинку, чтобы стирать точнее.'
+    : 'Проведите по месту, которое нужно вернуть: вернётся исходное изображение, даже если ИИ или фон его вырезали.';
+  stage.style.cursor = (paint||t==='pipette') ? 'crosshair' : '';
+  $('brushCur').classList.add('hide'); updatePipUi(); updateStUndo();
+  const isEd=t!=='move';
+  if(!noRefresh && (wasEd!==isEd || (isEd && !S.eAuto))) refreshPreview();
+}
+$('toolSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+$('oBr').oninput=()=>{ PZ.brush=+$('oBr').value; $('vBr').textContent=PZ.brush; };
+$('oBrS').oninput=()=>{ PZ.soft=+$('oBrS').value/100; $('vBrS').textContent=$('oBrS').value; };
+function updateStUndo(){ $('btnStUndo').disabled=!S.strokes.length; $('btnStReset').disabled=!S.strokes.length; }
+function redrawManual(){
+  if(!S.eAuto||!S.ov) return;
+  S.ov=overrideCanvas(S.vW,S.vH,S.strokes);
+  composeRegion(view.getContext('2d'),S.eAuto,S.eSrc,S.ov,0,0,S.vW,S.vH);
+}
+$('btnStUndo').onclick=()=>{ if(S.strokes.length){ S.strokes.pop(); redrawManual(); updateStUndo(); } };
+$('btnStReset').onclick=()=>{ if(S.strokes.length && confirm('Сбросить все правки ластиком и «Вернуть»?')){ S.strokes=[]; redrawManual(); updateStUndo(); } };
+
+const stPt = e => { const r=stage.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
+const toPix = pt => { const cs=S.cssW/S.vW; return [((pt[0]-S.tx)/S.z)/cs, ((pt[1]-S.ty)/S.z)/cs]; };
+function showCursor(pt){ const c=$('brushCur'), d=PZ.brush; c.style.width=c.style.height=d+'px'; c.style.left=(pt[0]-d/2)+'px'; c.style.top=(pt[1]-d/2)+'px'; c.classList.remove('hide'); }
+function paintSeg(stroke,seg){
+  const W=S.vW,H=S.vH; paintOv(S.ov.getContext('2d'),W,H,seg,stroke.r,stroke.h,stroke.m);
+  const rr=Math.max(0.6,stroke.r*Math.max(W,H))+3; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  seg.forEach(p=>{ x0=Math.min(x0,p[0]*W); y0=Math.min(y0,p[1]*H); x1=Math.max(x1,p[0]*W); y1=Math.max(y1,p[1]*H); });
+  x0=Math.max(0,Math.floor(x0-rr)); y0=Math.max(0,Math.floor(y0-rr)); x1=Math.min(W,Math.ceil(x1+rr)); y1=Math.min(H,Math.ceil(y1+rr));
+  composeRegion(view.getContext('2d'),S.eAuto,S.eSrc,S.ov,x0,y0,x1-x0,y1-y0);
+}
+function beginStroke(pt){
+  if(!S.eAuto||!S.ov){ toast('Подождите, картинка обрабатывается…'); PZ.g={type:'ignore'}; return; }
+  const p=toPix(pt), cs=S.cssW/S.vW, rPix=PZ.brush/2/(cs*S.z), M=Math.max(S.vW,S.vH);
+  const stroke={pts:[[p[0]/S.vW,p[1]/S.vH]], r:rPix/M, h:1-PZ.soft, m:S.tool};
+  PZ.g={type:'paint',stroke}; showCursor(pt); paintSeg(stroke,stroke.pts);
+}
+function extendStroke(pt){
+  const g=PZ.g, p=toPix(pt), n=[p[0]/S.vW,p[1]/S.vH], last=g.stroke.pts[g.stroke.pts.length-1];
+  if(Math.hypot((n[0]-last[0])*S.vW,(n[1]-last[1])*S.vH)<0.4) return;
+  g.stroke.pts.push(n); paintSeg(g.stroke,[last,n]);
+}
+function endStroke(){ const g=PZ.g; if(g&&g.type==='paint'){ S.strokes.push(g.stroke); updateStUndo(); } }
+function pipetteAt(pt){
+  const p=toPix(pt), x=Math.min(S.vW-1,Math.max(0,Math.floor(p[0]))), y=Math.min(S.vH-1,Math.max(0,Math.floor(p[1])));
+  const x0=Math.max(0,x-2), y0=Math.max(0,y-2), w=Math.min(S.vW,x+3)-x0, h=Math.min(S.vH,y+3)-y0;
+  const d=view.getContext('2d').getImageData(x0,y0,w,h).data; let R=0,G=0,B=0,n=0;
   for(let i=0;i<d.length;i+=4){ if(d[i+3]>40){ R+=d[i]; G+=d[i+1]; B+=d[i+2]; n++; } }
   if(!n){ toast('Здесь уже прозрачно — коснитесь остатка фона'); return; }
-  S.keys.push([R/n,G/n,B/n]);
-  updatePipUi(); refreshPreview();
+  S.keys.push([R/n,G/n,B/n]); updatePipUi(); refreshPreview();
+}
+const dist2s=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+stage.addEventListener('pointerdown',e=>{
+  if(!S.img||!S.vW||e.target.closest('.zoombtns')) return;
+  e.preventDefault(); try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+  PZ.ptrs.set(e.pointerId,stPt(e)); const pts=[...PZ.ptrs.values()];
+  if(pts.length===1){
+    const pt=pts[0];
+    if(S.tool==='erase'||S.tool==='restore') beginStroke(pt);
+    else PZ.g={type:S.tool==='pipette'?'tap':'pan',start:pt,tx:S.tx,ty:S.ty,moved:false};
+  } else if(pts.length===2){
+    endStroke(); $('brushCur').classList.add('hide');
+    const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
+    PZ.g={type:'pinch',d0:dist2s(pts[0],pts[1]),z0:S.z,c0:[(mid[0]-S.tx)/S.z,(mid[1]-S.ty)/S.z]};
+  } else PZ.g={type:'ignore'};
 });
+stage.addEventListener('pointermove',e=>{
+  const pt=stPt(e);
+  if(!PZ.ptrs.has(e.pointerId)){ if(e.pointerType==='mouse' && (S.tool==='erase'||S.tool==='restore') && S.vW) showCursor(pt); return; }
+  e.preventDefault(); PZ.ptrs.set(e.pointerId,pt);
+  const pts=[...PZ.ptrs.values()], g=PZ.g; if(!g) return;
+  if(pts.length===1){
+    if(g.type==='pan'||g.type==='tap'){
+      const dx=pt[0]-g.start[0], dy=pt[1]-g.start[1]; if(Math.hypot(dx,dy)>6) g.moved=true;
+      if(g.moved){ S.tx=g.tx+dx; S.ty=g.ty+dy; applyView(); }
+    } else if(g.type==='paint'){ showCursor(pt); extendStroke(pt); }
+  } else if(pts.length===2 && g.type==='pinch'){
+    const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2], nz=Math.min(Math.max(g.z0*dist2s(pts[0],pts[1])/g.d0,0.5),30);
+    S.z=nz; S.tx=mid[0]-g.c0[0]*nz; S.ty=mid[1]-g.c0[1]*nz; applyView();
+  }
+});
+function stEnd(e){
+  if(!PZ.ptrs.has(e.pointerId)) return;
+  const g=PZ.g; PZ.ptrs.delete(e.pointerId);
+  if(PZ.ptrs.size===0){
+    if(g&&g.type==='paint') endStroke(); else if(g&&g.type==='tap'&&!g.moved) pipetteAt(g.start);
+    PZ.g=null; $('brushCur').classList.add('hide');
+  } else if(PZ.ptrs.size===1) PZ.g={type:'ignore'};
+}
+stage.addEventListener('pointerup',stEnd); stage.addEventListener('pointercancel',stEnd);
 
 /* ================= Сохранение ================= */
 function canvasToBlob(cv,type,q){ return new Promise(res=>cv.toBlob(res,type,q)); }
@@ -845,7 +1024,7 @@ $('mDel').onclick=async()=>{
 };
 
 /* ================= Редактор: ластик и композиция ================= */
-const ED = { open:false, layers:[], sel:0, tool:'erase', W:0, H:0, vz:1, vx:0, vy:0, fitZ:1, brush:36, soft:0.3,
+const ED = { mode:'erase', open:false, layers:[], sel:0, tool:'erase', W:0, H:0, vz:1, vx:0, vy:0, fitZ:1, brush:36, soft:0.3,
              ptrs:new Map(), g:null, hover:null, hist:[], dirty:false, name:'clipart', dpr:1, nameN:0 };
 const EC = { cv:$('edCv'), stage:$('edStage') };
 const WORK_MAX = 4096, PREV_MAX = 1200, MARGIN = 1.6;
@@ -873,8 +1052,7 @@ function stamp(ctx,x,y,r,h){
   const g=ctx.createRadialGradient(x,y,r*h,x,y,r); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
 }
-function paintPts(ctx,k,pts,r,h){
-  ctx.save(); ctx.globalCompositeOperation='destination-out';
+function stampsAlong(ctx,k,pts,r,h){
   const rr=Math.max(0.6,r*k), step=Math.max(0.5,rr*0.22);
   for(let i=0;i<pts.length;i++){
     const x=pts[i][0]*k, y=pts[i][1]*k;
@@ -882,13 +1060,24 @@ function paintPts(ctx,k,pts,r,h){
     const px=pts[i-1][0]*k, py=pts[i-1][1]*k, dx=x-px, dy=y-py, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/step));
     for(let j=1;j<=n;j++) stamp(ctx,px+dx*j/n,py+dy*j/n,rr,h);
   }
-  ctx.restore();
 }
+function paintPts(ctx,k,pts,r,h){ ctx.save(); ctx.globalCompositeOperation='destination-out'; stampsAlong(ctx,k,pts,r,h); ctx.restore(); }
+function paintRestore(ctx,k,pts,r,h,orig){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; pts.forEach(p=>{ x0=Math.min(x0,p[0]); y0=Math.min(y0,p[1]); x1=Math.max(x1,p[0]); y1=Math.max(y1,p[1]); });
+  const rr=Math.max(0.6,r*k)+3, bx=Math.max(0,Math.floor(x0*k-rr)), by=Math.max(0,Math.floor(y0*k-rr));
+  const bw=Math.min(ctx.canvas.width,Math.ceil(x1*k+rr))-bx, bh=Math.min(ctx.canvas.height,Math.ceil(y1*k+rr))-by;
+  if(bw<=0||bh<=0) return;
+  const t=mkCanvas(bw,bh), tc=t.getContext('2d');
+  tc.save(); tc.translate(-bx,-by); stampsAlong(tc,k,pts,r,h); tc.restore();
+  tc.globalCompositeOperation='source-in'; tc.drawImage(orig,-bx,-by);
+  ctx.drawImage(t,bx,by);
+}
+function paintStroke(ctx,k,st,pts,orig){ if(st.m==='restore') paintRestore(ctx,k,pts,st.r,st.h,orig); else paintPts(ctx,k,pts,st.r,st.h); }
 function rebuild(L){
   const f=L.full.getContext('2d'), p=L.prev.getContext('2d');
   f.clearRect(0,0,L.full.width,L.full.height); f.drawImage(L.orig,0,0);
   p.clearRect(0,0,L.prev.width,L.prev.height); p.drawImage(L.origPrev,0,0);
-  L.strokes.forEach(s=>{ paintPts(f,1,s.pts,s.r,s.h); paintPts(p,L.ps,s.pts,s.r,s.h); });
+  L.strokes.forEach(s=>{ paintStroke(f,1,s,s.pts,L.orig); paintStroke(p,L.ps,s,s.pts,L.origPrev); });
 }
 
 /* --- отрисовка --- */
@@ -946,7 +1135,7 @@ function eraseTo(pt){
   const g=ED.g, L=g.L, c=s2c(pt[0],pt[1]), p=c2l(L,c[0],c[1]), last=g.stroke.pts[g.stroke.pts.length-1];
   if(Math.hypot(p[0]-last[0],p[1]-last[1])<0.3) return;
   g.stroke.pts.push(p);
-  const seg=[last,p]; paintPts(L.full.getContext('2d'),1,seg,g.stroke.r,g.stroke.h); paintPts(L.prev.getContext('2d'),L.ps,seg,g.stroke.r,g.stroke.h);
+  const seg=[last,p]; paintStroke(L.full.getContext('2d'),1,g.stroke,seg,L.orig); paintStroke(L.prev.getContext('2d'),L.ps,g.stroke,seg,L.origPrev);
 }
 function commitStroke(){
   const g=ED.g; if(g && g.type==='erase' && g.stroke){ g.L.strokes.push(g.stroke); ED.hist.push(g.L); ED.dirty=true; }
@@ -962,8 +1151,9 @@ EC.cv.addEventListener('pointerdown',e=>{
       const L=ED.layers[ED.sel]; if(!L) return;
       const c=s2c(pt[0],pt[1]), p=c2l(L,c[0],c[1]);
       const r=(ED.brush/2/ED.vz)/L.s;
-      ED.g={type:'erase',L,stroke:{pts:[p],r,h:1-ED.soft}}; ED.hover=pt;
-      paintPts(L.full.getContext('2d'),1,[p],r,1-ED.soft); paintPts(L.prev.getContext('2d'),L.ps,[p],r,1-ED.soft);
+      const stroke={pts:[p],r,h:1-ED.soft,m:ED.mode};
+      ED.g={type:'erase',L,stroke}; ED.hover=pt;
+      paintStroke(L.full.getContext('2d'),1,stroke,[p],L.orig); paintStroke(L.prev.getContext('2d'),L.ps,stroke,[p],L.origPrev);
     } else {
       const hit=hitTest(pt[0],pt[1]);
       if(hit>=0){ ED.sel=hit; edSync(); ED.g={type:'drag',L:ED.layers[hit],start:pt,cx:ED.layers[hit].cx,cy:ED.layers[hit].cy,moved:false}; }
@@ -1024,6 +1214,7 @@ $('edTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   ED.tool=b.dataset.t; $('edTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
   $('edErase').classList.toggle('hide',ED.tool!=='erase'); $('edLayers').classList.toggle('hide',ED.tool!=='layers'); ED.hover=null; edRender();
 });
+$('edMode').querySelectorAll('button').forEach(b=>b.onclick=()=>{ ED.mode=b.dataset.m; $('edMode').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); });
 $('edBr').oninput=()=>{ ED.brush=+$('edBr').value; $('vEdBr').textContent=ED.brush; };
 $('edSoft').oninput=()=>{ ED.soft=+$('edSoft').value/100; $('vEdSoft').textContent=$('edSoft').value; };
 $('edUndo').onclick=()=>{
@@ -1083,8 +1274,8 @@ function openEditor(baseCv,name){
   const bw=Math.max(1,Math.round(baseCv.width*f)), bh=Math.max(1,Math.round(baseCv.height*f));
   ED.W=Math.round(bw*MARGIN); ED.H=Math.round(bh*MARGIN);
   const L=makeLayer(cloneCv(baseCv,bw,bh),'Основа'); L.cx=ED.W/2; L.cy=ED.H/2;
-  Object.assign(ED,{layers:[L],sel:0,tool:'erase',hist:[],dirty:false,name:name||'clipart',ptrs:new Map(),g:null,hover:null,nameN:0});
-  $('edTabs').querySelector('[data-t="erase"]').click();
+  Object.assign(ED,{layers:[L],sel:0,tool:'erase',mode:'erase',hist:[],dirty:false,name:name||'clipart',ptrs:new Map(),g:null,hover:null,nameN:0});
+  $('edTabs').querySelector('[data-t="erase"]').click(); $('edMode').querySelector('[data-m="erase"]').click();
   $('edFmt').value=S.fmt;
   $('editor').classList.add('show'); ED.open=true;
   edResize(); edFit(); edSync();
